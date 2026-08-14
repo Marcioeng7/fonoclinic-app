@@ -66,6 +66,7 @@ with aba1:
         elif nome_paciente in st.session_state.pacientes:
             st.warning(f"O paciente '{nome_paciente}' já está cadastrado.")
         else:
+            # Removidos os pacotes, mantendo apenas o contador histórico de realizadas
             st.session_state.pacientes[nome_paciente] = {
                 "identificacao": {
                     "nome": nome_paciente, "data_nasc": data_nasc, "sexo": sexo, "apelido": apelido,
@@ -73,7 +74,7 @@ with aba1:
                     "estuda": estuda, "turma": turma, "turno": turno, "responsavel": responsavel,
                     "profissao": profissao, "telefone": telefone
                 },
-                "pacote_total": 0, "pacote_saldo": 0, "sessoes_realizadas": 0, "evolucoes": [], "anamnese": {}
+                "sessoes_realizadas": 0, "evolucoes": [], "anamnese": {}
             }
             st.success(f"Cadastro de '{nome_paciente}' realizado! Siga para a aba Anamnese.")
 
@@ -98,7 +99,7 @@ with aba2:
             st.text_input("Com quem passa mais tempo:")
             pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes")
 
-        # --- BLOCO 2: MARCOS MOTORES, MARCOS DE FALA E ROTINA DE TELAS ---
+        # --- BLOCO 2: MARCOS DE DESENVOLVIMENTO E ROTINA DE TELAS ---
         with st.expander("🦶 Marcos de Desenvolvimento e Rotina de Telas", expanded=False):
             col_m1, col_m2 = st.columns(2)
             idade_sentou = col_m1.text_input("Com qual idade sentou?")
@@ -116,7 +117,7 @@ with aba2:
             ])
             detalhe_telas = st.text_input("Quais conteúdos costuma assistir ou jogar?")
 
-        # --- BLOCO 3: NOVO! EXAMES E AVALIAÇÕES COMPLEMENTARES ---
+        # --- BLOCO 3: EXAMES E AVALIAÇÕES COMPLEMENTARES ---
         with st.expander("🩺 Exames e Avaliações Complementares", expanded=False):
             st.write("**🦻 Histórico e Exames Auditivos:**")
             pergunta_sim_nao("Fez o Teste da Orelhinha na maternidade?", "teste_orelha")
@@ -220,76 +221,53 @@ with aba2:
             st.success(f"Anamnese completa de '{paciente_anamnese}' salva localmente com sucesso!")
 
 # =====================================================================
-# ABA 3: GESTÃO DE PACOTES, SALDOS E SESSÕES REALIZADAS
+# ABA 3: GESTÃO DE EVOLUÇÕES E SESSÕES REALIZADAS ACUMULADAS
 # =====================================================================
 with aba3:
-    st.header("📦 Gestão de Pacotes, Evoluções e Relatórios")
+    st.header("📦 Histórico Clínico e Evolução das Sessões")
     
     if not st.session_state.pacientes:
         st.info("Nenhum paciente cadastrado na Aba 1 ainda.")
     else:
-        paciente_sel = st.selectbox("Selecione o Paciente:", list(st.session_state.pacientes.keys()), key="sel_pac_pacotes")
+        paciente_sel = st.selectbox("Selecione o Paciente para Acompanhamento:", list(st.session_state.pacientes.keys()), key="sel_pac_pacotes")
         dados_p = st.session_state.pacientes[paciente_sel]
         
-        # Garante que o contador de realizadas exista na memória
+        # Garante que o contador acumulativo de realizadas exista na memória do prontuário
         if "sessoes_realizadas" not in dados_p:
             st.session_state.pacientes[paciente_sel]["sessoes_realizadas"] = 0
             
-        col_p1, col_p2, col_p3 = st.columns(3)
+        # Exibição visual do Contador Histórico sugerido por você
+        col_p1, col_p2 = st.columns([2, 1])
         with col_p1:
-            novo_pacote = st.number_input("Adicionar/Renovar Paciente (Qtd Sessões):", min_value=0, value=0, step=1)
-            if st.button("Confirmar Carga de Pacote"):
-                st.session_state.pacientes[paciente_sel]["pacote_total"] += novo_pacote
-                st.session_state.pacientes[paciente_sel]["pacote_saldo"] += novo_pacote
-                st.success(f"Pacote atualizado! Total: {st.session_state.pacientes[paciente_sel]['pacote_total']}")
-        
+            st.write(f"Acompanhando o prontuário eletrônico de: **{paciente_sel}**")
         with col_p2:
-            saldo = dados_p["pacote_saldo"]
-            st.metric(label="Sessões Restantes no Pacote", value=f"{saldo} sessões")
-            if saldo <= 2 if dados_p["pacote_total"] > 0 else False:
-                st.error("⚠️ Alerta: Saldo baixo! Renove o pacote.")
-                
-        # Exibição do contador acumulativo de consultas feitas
-        with col_p3:
             realizadas = dados_p.get("sessoes_realizadas", 0)
-            st.metric(label="✨ Total de Sessões Realizadas", value=f"{realizadas} atendimentos", delta="Histórico Clínico")
+            st.metric(label="✨ Total de Consultas Realizadas", value=f"{realizadas} atendimentos", delta="Histórico Acumulado")
                 
         st.markdown("---")
         st.subheader("📝 Lançamento de Atendimento, Exames e Relatórios")
         
         tipo_registro = st.selectbox("Selecione o Tipo de Registro:", [
-            "Evolução de Rotina (Deduz do Pacote)", 
+            "Evolução de Atendimento de Rotina", 
             "Relatório de Atendimento Concluído", 
             "Laudo de Exame Externo / Anexo"
         ])
         
-        texto_clinico = st.text_area("Digite o texto ou parecer do documento:")
+        texto_clinico = st.text_area("Digite o texto, relatório ou parecer do documento:")
         
         if st.button("💾 Salvar Registro Clínico", key="btn_salvar_registro_clinico"):
             if not texto_clinico.strip():
                 st.error("Por favor, digite o conteúdo do registro antes de salvar.")
             else:
-                deduziu = False
-                if tipo_registro == "Evolução de Rotina (Deduz do Pacote)":
-                    if dados_p["pacote_saldo"] <= 0:
-                        st.error("Impossível salvar evolução: Sem saldo de sessões.")
-                        st.stop()
-                    else:
-                        st.session_state.pacientes[paciente_sel]["pacote_saldo"] -= 1
-                        st.session_state.pacientes[paciente_sel]["sessoes_realizadas"] += 1
-                        deduziu = True
-                
+                # Armazena na ficha do paciente na nuvem local
                 st.session_state.pacientes[paciente_sel]["evolucoes"].append({
                     "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                     "tipo": tipo_registro,
                     "texto": texto_clinico
                 })
                 
-                msg_sucesso = "Registro clínico salvo com sucesso!"
-                if deduziu:
-                    msg_sucesso += " (Saldo deduzido e contador de realizadas atualizado)"
-                st.success(msg_sucesso)
-                st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                st.success("Registro clínico e evolução anexados ao histórico do paciente com sucesso!")
+                st.rerun()
 
 # =====================================================================
 # ABA 4: LAUDOS & PDFS (PREPARADO PARA TODOS OS DOCUMENTOS)
@@ -335,7 +313,7 @@ with aba4:
         )
 
 # =====================================================================
-# ABA 5: AGENDA INTEGRADA COM CONTADORES AUTOMÁTICOS
+# ABA 5: AGENDA INTEGRADA COM CONTADOR AUTOMÁTICO ACUMULADO
 # =====================================================================
 with aba5:
     st.header("📅 Painel Integrado de Marcação de Consultas")
@@ -361,7 +339,7 @@ with aba5:
                     "data": data_agend.strftime("%d/%m/%Y"), "hora": hora_agend, "status": status_agend
                 })
                 st.success("Consulta fixada no painel!")
-                st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                st.rerun()
                 
     with col_a2:
         st.subheader("Painel de Atendimentos da Semana")
@@ -369,29 +347,27 @@ with aba5:
             st.info("Nenhum compromisso marcado para esta semana.")
         else:
             for idx, ag in enumerate(st.session_state.agenda):
-                # CORRIGIDO: Dividindo o layout em 3 colunas perfeitamente para evitar erros de renderização
+                # Columns com o número 3 fixado corretamente para evitar quebras visuais
                 col_c1, col_c2, col_c3 = st.columns(3)
                 col_c1.write(f"📌 **{ag['hora']}** - {ag['paciente']} ({ag['data']})")
                 col_c2.write(f"*{ag['status']}*")
                 
-                # Automação inteligente: se o status for "Agendado", exibe o botão Concluir
+                # Automação inteligente: Ao clicar em Concluir, o contador ganha +1
                 if ag['status'] == "Agendado":
                     if col_c3.button("✅ Concluir", key=f"ok_{ag['id']}"):
                         st.session_state.agenda[idx]["status"] = "Atendido"
                         
                         p_alvo = ag['paciente']
                         if p_alvo in st.session_state.pacientes:
-                            if st.session_state.pacientes[p_alvo]["pacote_saldo"] > 0:
-                                st.session_state.pacientes[p_alvo]["pacote_saldo"] -= 1
-                                if "sessoes_realizadas" not in st.session_state.pacientes[p_alvo]:
-                                    st.session_state.pacientes[p_alvo]["sessoes_realizadas"] = 0
-                                st.session_state.pacientes[p_alvo]["sessoes_realizadas"] += 1
-                                st.success(f"Atendimento de {p_alvo} concluído! Saldos e históricos atualizados.")
-                            else:
-                                st.warning(f"Atendimento marcado, mas {p_alvo} está sem saldo no pacote.")
-                        st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                            if "sessoes_realizadas" not in st.session_state.pacientes[p_alvo]:
+                                st.session_state.pacientes[p_alvo]["sessoes_realizadas"] = 0
+                            
+                            # Soma diretamente no contador histórico e acumulativo do paciente
+                            st.session_state.pacientes[p_alvo]["sessoes_realizadas"] += 1
+                            st.success(f"Atendimento de {p_alvo} concluído! +1 consulta adicionada ao histórico acumulado.")
+                        st.rerun()
                 else:
                     if col_c3.button("❌ Excluir", key=f"del_{ag['id']}"):
                         st.session_state.agenda.pop(idx)
                         st.success("Horário liberado!")
-                        st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                        st.rerun()

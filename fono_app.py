@@ -181,7 +181,6 @@ with aba3:
         hora_agend = st.text_input("Horário do Atendimento (Ex: 14:00):", key="agenda_hora_txt")
 
     with col_ag2:
-        # Nova Inteligência: Tipo de recorrência para preenchimento em lote
         recorrencia = st.selectbox("Repetição / Recorrência do Horário:", [
             "Consulta Única", 
             "Semanal (Todas as semanas)", 
@@ -193,7 +192,6 @@ with aba3:
         if recorrencia != "Consulta Única":
             qtd_repeticoes = st.number_input("Quantas vezes deseja repetir esse horário?", min_value=2, value=4, step=1)
         
-        # Status Fixo Inicial como determinado por você
         st.info("📌 Status Inicial do Agendamento: **Agendado**")
 
     if st.button("🗓️ Fixar na Grade de Agendamentos", key="btn_fixar_agenda"):
@@ -203,18 +201,15 @@ with aba3:
             datas_agendadas = []
             data_atual = data_inicio
             
-            # Algoritmo gerador de datas recorrentes automáticas
             for i in range(qtd_repeticoes):
                 datas_agendadas.append(data_atual.strftime("%d/%m/%Y"))
                 if recorrencia == "Semanal (Todas as semanas)":
                     data_atual += timedelta(weeks=1)
                 elif recorrencia == "Mensal (Uma vez por mês)":
-                    # Aproximação segura de 30 dias para avanço mensal estruturado
                     data_atual += timedelta(days=30)
                 elif recorrencia == "Anual (Uma vez por ano)":
                     data_atual += timedelta(days=365)
             
-            # Grava em lote na memória do sistema
             for dt in datas_agendadas:
                 st.session_state.agenda.append({
                     "id": len(st.session_state.agenda),
@@ -224,46 +219,72 @@ with aba3:
                     "status": "Agendado"
                 })
             
-            if recorrencia == "Consulta Única":
-                st.success(f"Consulta de {p_nome} para o dia {datas_agendadas[0]} às {hora_agend} fixada!")
-            else:
-                st.success(f"🗓️ Sucesso! Foram gerados {qtd_repeticoes} agendamentos automáticos para {p_nome} nas datas: {', '.join(datas_agendadas)}")
+            st.success(f"🗓️ Sucesso! Foram gerados {qtd_repeticoes} agendamentos para {p_nome}.")
             st.rerun()
 
 # =====================================================================
-# ABA 4: PAINEL DE ATENDIMENTO (VISUAL E FLUIDO)
+# ABA 4: PAINEL DE ATENDIMENTO COM FILTROS DE DIA, SEMANA, MÊS E ANO
 # =====================================================================
 with aba4:
     st.header("📋 Painel de Atendimento")
-    st.write("Filtre e visualize a grade de horários para gerenciar os atendimentos clínicos.")
+    st.write("Gerencie e visualize os compromissos da clínica filtrando por períodos.")
 
-    # Filtro de data interativo para a Dra. Michelle ver os pacientes do dia escolhido
-    data_filtro = st.date_input("Filtrar Painel por Data:", value=date.today(), key="painel_data_filtro")
-    data_filtro_str = data_filtro.strftime("%d/%m/%Y")
+    # Nova Inteligência: Seletor de Escopo de Visão sugerido por você
+    tipo_visao = st.radio(
+        "Escolha o escopo de visualização da grade:",
+        ["Ver por Dia", "Ver por Semana", "Ver por Mês", "Ver por Ano"],
+        horizontal=True,
+        key="radio_tipo_visao"
+    )
     
-    st.subheader(f"Grade de Compromissos para o dia {data_filtro_str}")
+    data_base = st.date_input("Selecione a Data Base de referência:", value=date.today(), key="painel_data_ref")
     
-    # Filtra os agendamentos da memória que batem com a data na tela
-    agendamentos_dia = [ag for ag in st.session_state.agenda if ag["data"] == data_filtro_str]
+    # Filtragem matemática baseada na escolha da Dra. Michelle
+    agendamentos_filtrados = []
     
-    if not agendamentos_dia:
-        st.info("Nenhuma consulta marcada para esta data. Use a aba anterior para agendar.")
+    if tipo_visao == "Ver por Dia":
+        target_str = data_base.strftime("%d/%m/%Y")
+        st.subheader(f"📅 Consultas do Dia: {target_str}")
+        agendamentos_filtrados = [ag for ag in st.session_state.agenda if ag["data"] == target_str]
+        
+    elif tipo_visao == "Ver por Semana":
+        # Calcula o início (segunda) e fim (domingo) da semana da data escolhida
+        inicio_semana = data_base - timedelta(days=data_base.weekday())
+        fim_semana = inicio_semana + timedelta(days=6)
+        st.subheader(f"📆 Consultas da Semana: {inicio_semana.strftime('%d/%m/%Y')} até {fim_semana.strftime('%d/%m/%Y')}")
+        
+        for ag in st.session_state.agenda:
+            ag_data = datetime.strptime(ag["data"], "%d/%m/%Y").date()
+            if inicio_semana <= ag_data <= fim_semana:
+                agendamentos_filtrados.append(ag)
+                
+    elif tipo_visao == "Ver por Mês":
+        target_mes_ano = data_base.strftime("/%m/%Y") # Filtra pelo final da string (Ex: /08/2026)
+        st.subheader(f"🗓️ Consultas do Mês: {data_base.strftime('%m/%Y')}")
+        agendamentos_filtrados = [ag for ag in st.session_state.agenda if ag["data"].endswith(target_mes_ano)]
+        
+    elif tipo_visao == "Ver por Ano":
+        target_ano = data_base.strftime("%Y")
+        st.subheader(f"📊 Planejamento Anual de Consultas: {target_ano}")
+        agendamentos_filtrados = [ag for ag in st.session_state.agenda if ag["data"].endswith(target_ano)]
+
+    # Renderização visual dos cartões (Cards)
+    if not agendamentos_filtrados:
+        st.info("Nenhum compromisso encontrado para o período selecionado.")
     else:
-        # Ordena a exibição por horário (Ex: 08:00 vem antes de 14:00)
-        agendamentos_dia.sort(key=lambda x: x["hora"])
+        # Ordenação inteligente: primeiro agrupa por data, depois por horário
+        agendamentos_filtrados.sort(key=lambda x: (datetime.strptime(x["data"], "%d/%m/%Y"), x["hora"]))
         
         for idx, ag in enumerate(st.session_state.agenda):
-            if ag["data"] == data_filtro_str:
-                # Caixa visual estilizada (card) para o paciente
+            if ag in agendamentos_filtrados:
                 with st.container(border=True):
-                    col_c1, col_c2, col_c3 = st.columns([2, 1, 1])
+                    col_c1, col_c2, col_c3 = st.columns(3)
                     
                     with col_c1:
                         st.markdown(f"### ⏰ **{ag['hora']}** — {ag['paciente']}")
-                        st.write(f"Data cadastrada: {ag['data']}")
+                        st.write(f"📌 Data: **{ag['data']}**")
                     
                     with col_c2:
-                        # Exibe cores diferentes dependendo do status clínico
                         if ag["status"] == "Agendado":
                             st.warning(f"🔹 Status: {ag['status']}")
                         elif ag["status"] == "Atendido":
@@ -274,28 +295,24 @@ with aba4:
                     with col_c3:
                         if ag["status"] == "Agendado":
                             col_b1, col_b2 = st.columns(2)
-                            # Botão de Concluir que dispara o contador acumulado
                             if col_b1.button("✅ Concluir", key=f"concluir_{ag['id']}"):
                                 st.session_state.agenda[idx]["status"] = "Atendido"
                                 p_alvo = ag['paciente']
                                 if p_alvo in st.session_state.pacientes:
                                     st.session_state.pacientes[p_alvo]["sessoes_realizadas"] += 1
-                                    st.success(f"Atendimento de {p_alvo} concluído! Histórico atualizado.")
+                                st.success(f"Atendimento registrado!")
                                 st.rerun()
                             
-                            # Botão de Registrar Falta
                             if col_b2.button("🚨 Falta", key=f"falta_{ag['id']}"):
                                 st.session_state.agenda[idx]["status"] = "Faltou"
                                 st.rerun()
                         else:
-                            # Botão para liberar o horário da grade caso mude de ideia
                             if st.button("🗑️ Desmarcar", key=f"excluir_{ag['id']}"):
-                                # Se desmarcar um que já foi atendido, subtrai do histórico para não inflar os dados
                                 if ag["status"] == "Atendido" and ag['paciente'] in st.session_state.pacientes:
                                     if st.session_state.pacientes[ag['paciente']]["sessoes_realizadas"] > 0:
                                         st.session_state.pacientes[ag['paciente']]["sessoes_realizadas"] -= 1
                                 st.session_state.agenda.pop(idx)
-                                st.success("Horário removido da grade.")
+                                st.success("Removido.")
                                 st.rerun()
 
 # =====================================================================
@@ -329,7 +346,7 @@ with aba5:
             "Evolução de Atendimento de Rotina", 
             "Relatório de Atendimento Concluído", 
             "Laudo de Exame Externo / Anexo"
-        ])
+        ], key="sel_tipo_registro_clinico")
         
         texto_clinico = st.text_area("Digite o texto, relatório ou parecer do documento:", key="txt_area_clinico")
         

@@ -1,132 +1,276 @@
 import streamlit as st
-from datetime import date
+from datetime import date, datetime
+import io
 
-st.title("🩺 Anamnese Infanto-Juvenil — FonoClinic")
+# Configuração da página - Mantendo o layout amplo (wide) para a tela não encolher
+st.set_page_config(page_title="FonoClinic v1.3", page_icon="🩺", layout="wide")
 
-# Função auxiliar para criar perguntas Sim/Não com padrão neutro/em branco
+# Inicialização do banco de dados na memória do navegador
+if "pacientes" not in st.session_state:
+    st.session_state.pacientes = {}
+if "agenda" not in st.session_state:
+    st.session_state.agenda = []
+
+# Função interna para gerar as perguntas de Sim/Não com padrão em branco ("")
 def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes"):
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns(2)
     with col1:
-        # Opções com string vazia primeiro para vir como "default" sem marcar nada
         resposta = st.radio(label, ["", "Sim", "Não"], index=0, key=key, horizontal=True)
     with col2:
         detalhe = ""
         if info_adicional and resposta == "Sim":
-            detalhe = st.text_input(f"{label_adicional} ({label})", key=f"{key}_det")
+            detalhe = st.text_input(f"{label_adicional}", key=f"{key}_det")
     return resposta, detalhe
 
-# --- SEÇÃO 1: DADOS IDENTIFICAÇÃO ---
-with st.expander("👤 Dados de Identificação", expanded=True):
-    col1, col2, col3 = st.columns([3, 1, 1])
-    nome = col1.text_input("Nome Completo do Paciente")
-    data_nasc = col2.date_input("Data de Nasc.", value=None, min_value=date(2000, 1, 1))
-    sexo = col3.selectbox("Sexo", ["", "Masculino", "Feminino", "Outro"])
+# Configuração das 5 abas com os nomes exatos solicitados
+aba1, aba2, aba3, aba4, aba5 = st.tabs([
+    "👤 Identificação do Paciente",
+    "📝 Anamnese", 
+    "📦 Controle de Pacotes", 
+    "📄 Laudos & PDFs", 
+    "📅 Agenda Semanal"
+])
+
+# =====================================================================
+# ABA 1: IDENTIFICAÇÃO DO PACIENTE
+# =====================================================================
+with aba1:
+    st.header("👤 Identificação do Paciente")
+    st.write("Insira os dados cadastrais básicos de admissão.")
+
+    nome_paciente = st.text_input("Nome Completo do Paciente (Obrigatório)", key="cad_nome").strip()
     
-    col4, col5, col6 = st.columns([2, 2, 1])
-    naturalidade = col4.text_input("Naturalidade")
-    apelido = col5.text_input("Apelido")
-    estuda = col6.selectbox("Estuda?", ["", "Sim", "Não"])
+    col1, col2, col3 = st.columns(3)
+    data_nasc = col1.date_input("Data de Nascimento", value=None, min_value=date(2000, 1, 1), key="cad_data_nasc")
+    sexo = col2.selectbox("Sexo", ["", "Masculino", "Feminino", "Outro"], key="cad_sexo")
+    apelido = col3.text_input("Apelido", key="cad_apelido")
     
-    if estuda == "Sim":
-        col7, col8 = st.columns(2)
-        turma = col7.text_input("Turma")
-        turno = col8.selectbox("Turno", ["", "Manhã", "Tarde", "Integral"])
+    col4, col5, col6 = st.columns(3)
+    naturalidade = col4.text_input("Naturalidade", key="cad_naturalidade")
+    endereco = col5.text_input("Endereço Completo", key="cad_endereco")
+    emergencia = col6.text_input("Em caso de emergência ligar para:", key="cad_emergencia")
+    
+    col7, col8, col9 = st.columns(3)
+    estuda = col7.selectbox("Estuda?", ["", "Sim", "Não"], key="cad_estuda")
+    turma = col8.text_input("Turma", key="cad_turma") if estuda == "Sim" else ""
+    turno = col9.selectbox("Turno", ["", "Manhã", "Tarde", "Integral"], key="cad_turno") if estuda == "Sim" else ""
+    
+    col10, col11, col12 = st.columns(3)
+    responsavel = col10.text_input("Nome do Responsável Legal", key="cad_responsavel")
+    profissao = col11.text_input("Profissão do Responsável", key="cad_profissao")
+    telefone = col12.text_input("Telefone de Contato", key="cad_telefone")
+
+    if st.button("💾 Salvar Cadastro de Identificação", key="btn_salvar_cadastro"):
+        if not nome_paciente:
+            st.error("Erro: O nome do paciente é obrigatório.")
+        elif nome_paciente in st.session_state.pacientes:
+            st.warning(f"O paciente '{nome_paciente}' já está cadastrado.")
+        else:
+            st.session_state.pacientes[nome_paciente] = {
+                "identificacao": {
+                    "nome": nome_paciente, "data_nasc": data_nasc, "sexo": sexo, "apelido": apelido,
+                    "naturalidade": naturalidade, "endereco": endereco, "emergencia": emergencia,
+                    "estuda": estuda, "turma": turma, "turno": turno, "responsavel": responsavel,
+                    "profissao": profissao, "telefone": telefone
+                },
+                "pacote_total": 0, "pacote_saldo": 0, "evolucoes": [], "anamnese": {}
+            }
+            st.success(f"Cadastro de '{nome_paciente}' realizado! Siga para a aba Anamnese.")
+
+# =====================================================================
+# ABA 2: ANAMNESE (TODAS AS PERGUNTAS RECUPERADAS)
+# =====================================================================
+with aba2:
+    st.header("Anamnese — FonoClinic")
+    
+    if not st.session_state.pacientes:
+        st.info("Por favor, realize primeiro o cadastro de identificação do paciente na Aba 1.")
+    else:
+        paciente_anamnese = st.selectbox("Selecione o Paciente:", list(st.session_state.pacientes.keys()), key="sel_pac_anamnese")
         
-    col9, col10 = st.columns([3, 2])
-    responsavel = col9.text_input("Nome do Responsável Legal")
-    profissao = col10.text_input("Profissão do Responsável")
-    
-    col11, col12 = st.columns(2)
-    telefone = col11.text_input("Telefone de Contato")
-    emergencia = col12.text_input("Em caso de emergência ligar para:")
+        # --- BLOCO 1: QUEIXA E SAÚDE ---
+        with st.expander("📋 Queixa Principal e Histórico Clínico", expanded=True):
+            queixa = st.text_area("Queixa Principal (O que te trouxe aqui?)")
+            pergunta_sim_nao("Faz terapia com outros profissionais?", "ter_outros", True, "Quais?")
+            st.text_input("Tem diagnóstico?")
+            pergunta_sim_nao("Alérgico:", "alergia", True, "Quais?")
+            pergunta_sim_nao("Toma medicação:", "medicao", True, "Quais?")
+            st.text_input("Com quem passa mais tempo:")
+            pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes")
 
-# --- SEÇÃO 2: QUEIXA E HISTÓRICO CLÍNICO ---
-with st.expander("📋 Queixa Principal e Histórico Clínico", expanded=False):
-    queixa = st.text_area("Queixa Principal (O que te trouxe aqui?)")
-    
-    resp_terapia, quais_terapias = pergunta_sim_nao("Faz terapia com outros profissionais?", "terapia", True, "Quais?")
-    diagnostico = st.text_input("Tem diagnóstico fechado? (Se sim, qual?)")
-    
-    resp_alergico, quais_alergias = pergunta_sim_nao("É Alérgico?", "alergia", True, "Quais alergias?")
-    resp_medica, quais_meds = pergunta_sim_nao("Toma alguma medicação?", "medicao", True, "Quais medicações e dosagem?")
-    
-    com_quem_passa_tempo = st.text_input("Com quem passa a maior parte do tempo?")
-    pergunta_sim_nao("Pratica ou gosta de esportes?", "esportes")
+        # --- BLOCO 2: LINGUAGEM E SOCIAIS ---
+        with st.expander("🗣️ Comunicação, Interação e Conhecimentos Básicos", expanded=False):
+            pergunta_sim_nao("Verbal:", "verbal")
+            pergunta_sim_nao("Interage bem:", "interage")
+            pergunta_sim_nao("Olha no olho ao ser chamado:", "olha_olho")
+            pergunta_sim_nao("Atende a comandos (pega isso aqui e coloca na mesa):", "comandos")
+            pergunta_sim_nao("Sabe o seu nome:", "sabe_nome")
+            pergunta_sim_nao("Sabe o nome dos responsáveis:", "nome_resp")
+            pergunta_sim_nao("Sabe se expressar?", "expressar")
+            
+            st.markdown("---")
+            st.write("**Conhecimentos Pedagógicos Básicos:**")
+            col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+            with col_p1: st.radio("Sabe as vogais:", ["", "Sim", "Não"], key="vogais")
+            with col_p2: st.radio("Sabe as cores:", ["", "Sim", "Não"], key="cores_sabe")
+            with col_p3: st.radio("Sabe o alfabeto:", ["", "Sim", "Não"], key="alfabeto")
+            with col_p4: st.radio("Fala inglês:", ["", "Sim", "Não"], key="ingles")
 
-# --- SEÇÃO 3: DESENVOLVIMENTO & LINGUAGEM ---
-with st.expander("🗣️ Desenvolvimento de Linguagem e Interação", expanded=False):
-    pergunta_sim_nao("É Verbal?", "verbal")
-    pergunta_sim_nao("Interage bem socialmente?", "interage")
-    pergunta_sim_nao("Olha no olho ao ser chamado?", "olha_olho")
-    pergunta_sim_nao("Atende a comandos? (Ex: pega isso aqui e coloca na mesa)", "comandos")
-    pergunta_sim_nao("Sabe expressar seus desejos/sentimentos?", "expressar")
-    pergunta_sim_nao("Sabe o seu próprio nome?", "sabe_nome")
-    pergunta_sim_nao("Sabe o nome dos responsáveis?", "nome_resp")
-    
-    st.subheader("Conhecimentos Pedagógicos Básicos")
-    col_p1, col_p2, col_p3, col_p4 = st.columns(4)
-    with col_p1: st.radio("Sabe as vogais?", ["", "Sim", "Não"], key="vogais")
-    with col_p2: st.radio("Sabe as cores?", ["", "Sim", "Não"], key="cores_sabe")
-    with col_p3: st.radio("Sabe o alfabeto?", ["", "Sim", "Não"], key="alfabeto")
-    with col_p4: st.radio("Fala/entende inglês?", ["", "Sim", "Não"], key="ingles")
+            st.markdown("---")
+            st.write("**Marcos de Nomeação e Identificação:**")
+            pergunta_sim_nao("Nomeia as cores?", "nomeia_cores")
+            pergunta_sim_nao("Nomeia objetos?", "nomeia_objetos")
+            pergunta_sim_nao("Identifica Figuras?", "identifica_figuras")
+            pergunta_sim_nao("Nomeia animais?", "nomeia_animais")
+            pergunta_sim_nao("Sabe as emoções?", "emocoes")
 
-    st.subheader("Marcos de Nomeação e Identificação")
-    pergunta_sim_nao("Nomeia as cores?", "nomeia_cores")
-    pergunta_sim_nao("Nomeia objetos comuns?", "nomeia_objetos")
-    pergunta_sim_nao("Identifica figuras/imagens?", "identifica_figuras")
-    pergunta_sim_nao("Nomeia animais?", "nomeia_animais")
+        # --- BLOCO 3: COMPORTAMENTO E ROTINA ---
+        with st.expander("🧠 Rotina, Comportamento e Sinais de Alerta", expanded=False):
+            pergunta_sim_nao("Seletividade alimentar:", "seletividade")
+            pergunta_sim_nao("Dorme bem:", "dorme_bem")
+            pergunta_sim_nao("Gosta de música:", "musica")
+            pergunta_sim_nao("Gosta de animais?", "gosta_animais")
+            pergunta_sim_nao("Assiste desenho animado?", "desenho", True, "Quais desenhos?")
+            
+            st.markdown("---")
+            st.write("⚠️ **Sinais de Alerta e Comportamentos Atípicos:**")
+            pergunta_sim_nao("Estereotipia:", "estereotipia")
+            pergunta_sim_nao("Ecolalia:", "ecolalia")
+            pergunta_sim_nao("Fixação em algo:", "fixacao")
+            pergunta_sim_nao("Dificuldade motora:", "dif_motora")
+            pergunta_sim_nao("Auto-agressão:", "auto_agressao")
+            pergunta_sim_nao("Agressivo com os outros:", "agressivo", True, "Em quais momentos?")
 
-# --- SEÇÃO 4: ROTINA, COMPORTAMENTO & COMPORTAMENTOS ATÍPICOS ---
-with st.expander("🧠 Comportamento e Rotina Diária", expanded=False):
-    pergunta_sim_nao("Apresenta Seletividade alimentar?", "seletividade")
-    pergunta_sim_nao("Dorme bem?", "dorme_bem")
-    pergunta_sim_nao("Gosta de música?", "musica")
-    
-    resp_desenho, quais_desenhos = pergunta_sim_nao("Assiste desenho animado?", "desenho", True, "Quais desenhos assiste?")
-    
-    # Comportamentos de Alerta / Atípicos
-    st.markdown("---")
-    st.write("**Sinais de Alerta / Comportamentos Atípicos:**")
-    pergunta_sim_nao("Apresenta Estereotipia?", "estereotipia")
-    pergunta_sim_nao("Apresenta Ecolalia?", "ecolalia")
-    pergunta_sim_nao("Possui Fixação em algo específico?", "fixacao")
-    pergunta_sim_nao("Apresenta alguma Dificuldade motora?", "dif_motora")
-    pergunta_sim_nao("Pratica Auto-agressão?", "auto_agressao")
-    
-    resp_agressivo, quando_agressivo = pergunta_sim_nao(
-        "É Agressivo com os outros?", "agressivo_outros", True, "Em quais momentos?"
-    )
-    pergunta_sim_nao("Gosta de animais?", "gosta_animais")
+        # --- BLOCO 4: HISTÓRICO INICIAL E AUTONOMIA ---
+        with st.expander("🚽 Autonomia e Histórico de Desenvolvimento", expanded=False):
+            pergunta_sim_nao("Usa Fralda?", "fralda")
+            pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "banheiro")
+            pergunta_sim_nao("Se veste sozinho?", "veste_sozinho")
+            
+            st.markdown("---")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.radio("Parto:", ["", "Cesária", "Normal"], key="parto")
+                st.text_input("Alguma intercorrência?")
+            with col_b:
+                st.multiselect("Ele(a) é:", ["Agitado", "Tranquilo", "Inseguro", "Impaciente"], key="perfil_psic")
+                
+            st.text_input("Ele(a) mamou peito ou formula?")
+            pergunta_sim_nao("Usou e ainda usa chupeta, dedo ou mamadeira?", "chupeta")
+            st.text_area("O que ele(a) gosta de brinkar?")
+            st.text_area("O que mais gosta de fazer?")
 
-# --- SEÇÃO 5: HISTÓRICO DE AUTONOMIA & INFÂNCIA ---
-with st.expander("🚽 Autonomia e Histórico de Desenvolvimento Inicial", expanded=False):
-    pergunta_sim_nao("Usa Fralda?", "fralda")
-    pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "banheiro")
-    pergunta_sim_nao("Se veste sozinho?", "veste_sozinho")
-    
-    st.markdown("---")
-    col_parto, col_perfil = st.columns(2)
-    with col_parto:
-        parto = st.radio("Tipo de Parto:", ["", "Cesária", "Normal"], key="parto")
-        intercorrencia = st.text_input("Alguma intercorrência no parto?")
-    with col_perfil:
-        # Multi-seleção para características de comportamento
-        perfil_comportamental = st.multiselect(
-            "Ele(a) é predominantemente:",
-            ["Agitado", "Tranquilo", "Inseguro", "Impaciente"]
-        )
+        st.markdown("---")
+        realizada_com = st.text_input("Anamnese realizada com:")
+        st.caption("Avaliação registrada por: Dra. Michelle Neves — Fonoaudióloga")
+
+        if st.button("💾 Salvar Anamnese", key="btn_salvar_anamnese"):
+            st.session_state.pacientes[paciente_anamnese]["anamnese"] = {"queixa": queixa, "realizada_com": realizada_com}
+            st.success(f"Anamnese de '{paciente_anamnese}' salva com sucesso!")
+
+# =====================================================================
+# ABA 3: CONTROLE DE PACOTES
+# =====================================================================
+with aba3:
+    st.header("📦 Gestão de Pacotes de Sessões e Evolução")
+    if not st.session_state.pacientes:
+        st.info("Nenhum paciente cadastrado na Aba 1 ainda.")
+    else:
+        paciente_sel = st.selectbox("Selecione o Paciente para Evolução:", list(st.session_state.pacientes.keys()), key="sel_pac_pacotes")
+        dados_p = st.session_state.pacientes[paciente_sel]
         
-    amamentacao = st.text_input("Ele(a) mamou peito ou fórmula?")
-    pergunta_sim_nao("Usou e ainda usa chupeta, dedo ou mamadeira?", "chupeta_dedo")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            novo_pacote = st.number_input("Adicionar/Renovar Paciente (Qtd Sessões):", min_value=0, value=0, step=1)
+            if st.button("Confirmar Carga de Pacote"):
+                st.session_state.pacientes[paciente_sel]["pacote_total"] += novo_pacote
+                st.session_state.pacientes[paciente_sel]["pacote_saldo"] += novo_pacote
+                st.success(f"Pacote atualizado! Total: {st.session_state.pacientes[paciente_sel]['pacote_total']}")
+        
+        with col_p2:
+            saldo = dados_p["pacote_saldo"]
+            st.metric(label="Consultas Restantes no Pacote", value=f"{saldo} sessões")
+            if saldo <= 2 if dados_p["pacote_total"] > 0 else False:
+                st.error("⚠️ Alerta: Saldo baixo! Renove o pacote.")
+                
+        st.markdown("---")
+        st.subheader("Nova Evolução Clínica (Deduz do Saldo)")
+        texto_evolucao = st.text_area("Descreva a evolução do atendimento de hoje:")
+        
+        if st.button("Salvar Evolução & Deduzir Sessão"):
+            if not texto_evolucao.strip():
+                st.error("Por favor, digite o texto da evolução.")
+            elif dados_p["pacote_saldo"] <= 0:
+                st.error("Impossível salvar: Sem saldo de sessões.")
+            else:
+                st.session_state.pacientes[paciente_sel]["pacote_saldo"] -= 1
+                st.session_state.pacientes[paciente_sel]["evolucoes"].append({
+                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"), "texto": texto_evolucao
+                })
+                st.success("Evolução salva e 1 sessão deduzida!")
+                st.rerun()
+
+# =====================================================================
+# ABA 4: LAUDOS & PDFS
+# =====================================================================
+with aba4:
+    st.header("📄 Emissão de Documentos Oficiais")
+    tipo_doc = st.selectbox("Selecione o Tipo de Documento:", ["Laudo Fonoaudiológico", "Atestado de Comparecimento", "Recibo"])
     
-    brincadeiras = st.text_area("O que ele(a) gosta de brincar?")
-    hobbies = st.text_area("O que ele(a) mais gosta de fazer?")
+    if tipo_doc == "Laudo Fonoaudiológico":
+        st.text_input("Nome do Paciente:")
+        st.text_input("Código CID:")
+        st.text_area("Parecer Técnico Fonoaudiológico:")
+    elif tipo_doc == "Atestado de Comparecimento":
+        st.text_input("Nome do Paciente:")
+        st.date_input("Data do Comparecimento", value=date.today())
+        st.text_input("Horário do Atendimento:")
+    elif tipo_doc == "Recibo":
+        st.text_input("Recebi de (Nome):")
+        st.number_input("Valor Cobrado (R$):", min_value=0.0, format="%.2f")
+        st.text_input("Valor por Extenso:")
 
-# --- ASSINATURA ---
-st.markdown("---")
-realizada_com = st.text_input("Anamnese realizada com (Acompanhante/Fonte das informações):")
-st.caption("Avaliação registrada por: Michelle Neves - Estagiária de Fonoaudiologia")
+    if st.button("Gerar PDF Oficial"):
+        st.info("Documento preparado no buffer do sistema.")
+        pdf_buffer = io.BytesIO()
+        pdf_buffer.write(b"PDF Base FonoClinic v1.3")
+        st.download_button("📥 Baixar Arquivo PDF", data=pdf_buffer.getvalue(), file_name=f"{tipo_doc.lower().replace(' ', '_')}.pdf", mime="application/pdf")
 
-if st.button("Salvar Anamnese Expandida"):
-    # Aqui entra o seu código de validação e salvamento no banco de dados / estado
-    st.success("Anamnese salva localmente com sucesso!")
+# =====================================================================
+# ABA 5: AGENDA SEMANAL
+# =====================================================================
+with aba5:
+    st.header("📅 Painel Integrado de Marcação de Consultas")
+    col_a1, col_a2 = st.columns(2)
+    
+    with col_a1:
+        st.subheader("Marcar Horário")
+        p_nome = st.text_input("Nome do Paciente para Agenda:")
+        data_agend = st.date_input("Data do Atendimento", value=date.today(), key="agenda_data")
+        hora_agend = st.text_input("Horário (Ex: 09:30):")
+        status_agend = st.selectbox("Status Inicial:", ["Agendado", "Atendido", "Faltou"])
+        
+        if st.button("Fixar na Agenda Semanal"):
+            if not p_nome or not hora_agend:
+                st.error("Preencha o nome e o horário.")
+            else:
+                st.session_state.agenda.append({
+                    "id": len(st.session_state.agenda), "paciente": p_nome,
+                    "data": data_agend.strftime("%d/%m/%Y"), "hora": hora_agend, "status": status_agend
+                })
+                st.success("Consulta fixada no painel!")
+                st.rerun()
+                
+    with col_a2:
+        st.subheader("Painel de Atendimentos da Semana")
+        if not st.session_state.agenda:
+            st.info("Nenhum compromisso marcado para esta semana.")
+        else:
+            for idx, ag in enumerate(st.session_state.agenda):
+                col_c1, col_c2, col_c3 = st.columns(3)
+                col_c1.write(f"📌 **{ag['hora']}** - {ag['paciente']} ({ag['data']})")
+                col_c2.write(f"*{ag['status']}*")
+                if col_c3.button("❌ Excluir", key=f"del_{ag['id']}"):
+                    st.session_state.agenda.pop(idx)
+                    st.success("Horário liberado!")
+                    st.rerun()

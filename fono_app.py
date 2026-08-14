@@ -1,13 +1,11 @@
 # ==============================================================================
-# BLOCO 1 DE 5: IMPORTAÇÕES, SEGURANÇA E CONEXÃO COM O GOOGLE SHEETS
+# BLOCO 1 DE 5: IMPORTAÇÕES, CONFIGURAÇÃO E CONEXÃO SEGURA COM GOOGLE SHEETS
 # ==============================================================================
 import streamlit as st
 import gspread
-from google.auth.credentials import Credentials
 from google.oauth2.service_account import Credentials as SACredentials
-import hmac
 
-# 1. CONFIGURAÇÃO DA PÁGINA (Deve ser o primeiro comando Streamlit)
+# 1. CONFIGURAÇÃO DA PÁGINA (Sempre o primeiro comando do script)
 st.set_page_config(
     page_title="FonoClinic v1.3",
     page_icon="📝",
@@ -15,33 +13,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. MOTOR DE CONEXÃO COM O GOOGLE SHEETS (NUVEM)
+# 2. CACHE DA CONEXÃO COM O BANCO DE DADOS EM NUVEM
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        # Escopos necessários para leitura e gravação no Drive/Sheets
         escopos = [
             "https://googleapis.com",
             "https://googleapis.com"
         ]
-        
-        # Carrega as credenciais seguras dos Secrets do Streamlit Cloud
+        # Puxa a chave secreta cadastrada na nuvem do Streamlit
         info_chaves = dict(st.secrets["gcp_service_account"])
         credenciais = SACredentials.from_service_account_info(info_chaves, scopes=escopos)
         
-        # Autentica o cliente do gspread
+        # Conecta via gspread
         cliente = gspread.authorize(credenciais)
         
-        # Abre a planilha oficial pelo ID exato fornecido
+        # ID Oficial da Planilha extraído do seu link válido
         id_planilha = "1qLEa7_iEPSkENJSovjy6_3yzVVjtVAKnJDkteG6Skdw"
-        planilha_mestre = cliente.open_by_key(id_planilha)
-        return planilha_mestre
+        return cliente.open_by_key(id_planilha)
     except Exception as e:
         st.error(f"Erro crítico de comunicação com o Google Sheets: {e}")
         st.info("Verifique se o e-mail do robô foi compartilhado na Planilha como Editor.")
         return None
 
-# Inicializa as tabelas na nuvem
+# Inicializa o motor global
 gspread_client = conectar_google_sheets()
 
 if gspread_client:
@@ -51,10 +46,10 @@ if gspread_client:
         aba_evolucao = gspread_client.worksheet("evolucoes_relatorios")
         aba_agenda = gspread_client.worksheet("agenda")
     except Exception as e:
-        st.error(f"Erro ao carregar as abas da planilha: {e}")
-        st.warning("Verifique se os nomes das abas no Sheets estão exatamente como: identificacao, anamnese, evolucoes_relatorios e agenda")
+        st.error(f"Erro ao mapear abas da planilha: {e}")
+        st.warning("Verifique se as abas no Sheets estão nomeadas exatamente como: identificacao, anamnese, evolucoes_relatorios e agenda")
 
-# 3. INTERFACE PRINCIPAL E CRIAÇÃO DAS ABAS
+# 3. INTERFACE E CRIAÇÃO DOS PAINÉIS EM ABAS
 st.title("📝 FonoClinic v1.3 — Prontuário Digital Integrado")
 st.markdown("---")
 
@@ -67,7 +62,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 # ==============================================================================
-# BLOCO 2 DE 5: ABA 1 — IDENTIFICAÇÃO E CADASTRO DO PACIENTE
+# BLOCO 2 DE 5: ABA 1 — IDENTIFICAÇÃO E CADASTRO DO PACIENTE COMPLETO
 # ==============================================================================
 with tab1:
     st.header("👥 Cadastro e Identificação do Paciente")
@@ -93,11 +88,11 @@ with tab1:
         if not id_paciente or not nome_paciente:
             st.warning("⚠️ Os campos 'Código/ID' e 'Nome Completo' são obrigatórios!")
         elif gspread_client is None:
-            st.error("❌ Não há conexão ativa com o Google Sheets. Verifique o Bloco 1.")
+            st.error("❌ Não há conexão ativa com o Google Sheets. Verifique a configuração inicial.")
         else:
             with st.spinner("Gravando dados no Google Sheets..."):
                 try:
-                    # Prepara a linha para inserção
+                    # Prepara os dados na ordem correta da tabela de identificação
                     nova_linha = [
                         id_paciente, 
                         nome_paciente, 
@@ -107,52 +102,51 @@ with tab1:
                         telefone_contato, 
                         queixa_principal
                     ]
-                    # Adiciona a linha na aba identificacao
                     aba_identificacao.append_row(nova_linha)
-                    st.success(f"🎉 Paciente '{nome_paciente}' cadastrado com sucesso no banco de dados!")
+                    st.success(f"🎉 Paciente '{nome_paciente}' cadastrado com sucesso na nuvem!")
                 except Exception as e:
                     st.error(f"Erro ao salvar dados na nuvem: {e}")
 
 # ==============================================================================
-# BLOCO 3 DE 5: ABA 2 — ANAMNESE CLÍNICA DETALHADA
+# BLOCO 3 DE 5: ABA 2 — ANAMNESE CLÍNICA DETALHADA E COMPLETA
 # ==============================================================================
 with tab2:
     st.header("🩺 Anamnese Clínica")
-    st.write("Preencha o histórico de desenvolvimento e saúde do paciente.")
+    st.write("Preencha o histórico completo de desenvolvimento e saúde do paciente.")
     
     with st.form("form_anamnese", clear_on_submit=True):
-        st.subheader("📍 Identificação de Vínculo")
+        st.subheader("📍 Vinculação de Prontuário")
         id_paciente_anamnese = st.text_input("Código/ID do Paciente Cadastrado (Deve ser igual ao da Aba 1):", placeholder="PAC001")
         
         st.markdown("---")
         st.subheader("👶 Desenvolvimento Motor e Linguagem")
         col1, col2 = st.columns(2)
         with col1:
-            desenv_motor = st.text_area("Marcos de Desenvolvimento Motor (Sentou, andou no tempo esperado?):", placeholder="Detalhes sobre o desenvolvimento motor...")
-            desenv_linguagem = st.text_area("Desenvolvimento da Linguagem (Primeiras palavras, balbucios?):", placeholder="Detalhes sobre o início da fala...")
+            desenv_motor = st.text_area("Marcos de Desenvolvimento Motor (Sentou, andou no tempo esperado?):", placeholder="Descreva os marcos motores...")
+            desenv_linguagem = st.text_area("Desenvolvimento da Linguagem (Primeiras palavras, balbucios?):", placeholder="Descreva o início e evolução da fala...")
         with col2:
-            compreensao = st.text_area("Compreensão (Atende a comandos, atende quando chamado?):", placeholder="Como é a compreensão do paciente...")
-            comportamento = st.text_area("Comportamento e Interação Social:", placeholder="Agitado, tímido, interage bem com outras crianças...")
+            compreensao = st.text_area("Compreensão (Atende a comandos, atende quando chamado?):", placeholder="Descreva a capacidade de compreensão...")
+            comportamento = st.text_area("Comportamento e Interação Social:", placeholder="Interação com pares, comportamento em casa/escola...")
             
         st.markdown("---")
         st.subheader("🍽️ Funções Estomatognáticas (Alimentação e Respiração)")
         col3, col4 = st.columns(2)
         with col3:
-            alimentacao = st.text_area("Histórico de Alimentação (Mastigação, seletividade alimentar, engasgos?):", placeholder="Dificuldades ou padrões alimentares...")
+            alimentacao = st.text_area("Histórico de Alimentação (Mastigação, seletividade alimentar, engasgos?):", placeholder="Padrões e dificuldades alimentares...")
         with col4:
-            respiracao_sono = st.text_area("Respiração e Sono (Respora pela boca, ronca, sono agitado?):", placeholder="Padrão respiratório e de sono...")
+            respiracao_sono = st.text_area("Respiração e Sono (Respira pela boca, ronca, sono agitado?):", placeholder="Qualidade do sono e padrão respiratório...")
             
         st.markdown("---")
         st.subheader("🏥 Histórico Médico e Familiar")
-        historico_medico = st.text_area("Histórico Médico, Exames e Antecedentes Familiares relevante:", placeholder="Cirurgias, otites frequentes, casos semelhantes na família...")
+        historico_medico = st.text_area("Histórico Médico, Exames e Antecedentes Familiares relevantes:", placeholder="Intervenções, exames realizados, histórico de saúde da família...")
         
         botao_salvar_anamnese = st.form_submit_button("💾 Salvar Anamnese na Nuvem")
         
     if botao_salvar_anamnese:
         if not id_paciente_anamnese:
-            st.warning("⚠️ Você precisa informar o 'Código/ID do Paciente' para vincular a anamnese!")
+            st.warning("⚠️ Você precisa informar o 'Código/ID do Paciente' para vincular esta anamnese!")
         elif gspread_client is None:
-            st.error("❌ Não há conexão ativa com o Google Sheets. Verifique o Bloco 1.")
+            st.error("❌ Sem conexão ativa com o Google Sheets. Verifique o Bloco 1.")
         else:
             with st.spinner("Gravando anamnese no Google Sheets..."):
                 try:
@@ -167,32 +161,34 @@ with tab2:
                         historico_medico
                     ]
                     aba_anamnese.append_row(nova_anamnese)
-                    st.success(f"🎉 Anamnese do paciente '{id_paciente_anamnese}' salva com sucesso no banco de dados!")
+                    st.success(f"🎉 Anamnese do paciente '{id_paciente_anamnese}' salva com sucesso na nuvem!")
                 except Exception as e:
                     st.error(f"Erro ao salvar anamnese na nuvem: {e}")
 
 # ==============================================================================
-# BLOCO 4 DE 5: ABA 3 — EVOLUÇÕES/RELATÓRIOS & ABA 4 — AGENDA INTEGRADA
+# BLOCO 4 DE 5: ABA 3 — EVOLUÇÕES CLÍNICAS & ABA 4 — AGENDA AVANÇADA
 # ==============================================================================
+
+# --- ABA 3: EVOLUÇÕES E RELATÓRIOS ---
 with tab3:
-    st.header("📈 Evoluções Clínicas e Relatórios")
-    st.write("Registre o progresso diário do paciente e o planejamento das sessões.")
+    st.header("📈 Evoluções Clínicas e Acompanhamento Diário")
+    st.write("Registre o progresso detalhado das sessões, condutas aplicadas e respostas aos estímulos.")
     
-    with st.form("form_evolucao", clear_on_submit=True):
-        col1, col2 = st.columns([1, 2])
+    with st.form("form_evolucao_completa", clear_on_submit=True):
+        col1, col2 = st.columns(2)
         with col1:
             id_paciente_evolucao = st.text_input("Código/ID do Paciente:", placeholder="PAC001")
             data_sessao = st.text_input("Data da Sessão (DD/MM/AAAA):", placeholder="14/08/2026")
-            tipo_sessao = st.selectbox("Tipo de Atendimento:", ["Fonoterapia", "Avaliação", "Retorno", "Supervisão"])
+            tipo_sessao = st.selectbox("Tipo de Atendimento:", ["Fonoterapia", "Avaliação", "Retorno", "Supervisão", "Triagem"])
         with col2:
-            descricao_evolucao = st.text_area("Evolução Clínica (Conduta, desempenho e respostas aos estímulos):", placeholder="Descreva como foi a sessão...")
-            orientacoes_casa = st.text_area("Orientações para Casa / Planejamento Próxima Sessão:", placeholder="Tarefas ou estratégias passadas aos responsáveis...")
+            descricao_evolucao = st.text_area("Evolução Clínica e Conduta (Detalhamento técnico da sessão):", placeholder="Descreva os exercícios, evolução e comportamento hoje...")
+            orientacoes_casa = st.text_area("Orientações para Casa / Planejamento Estratégico Próxima Sessão:", placeholder="Anote as tarefas passadas para a família...")
             
-        botao_salvar_evolucao = st.form_submit_button("💾 Salvar Evolução na Nuvem")
+        botao_salvar_evolucao = st.form_submit_button("💾 Salvar Evolução Completa na Nuvem")
         
     if botao_salvar_evolucao:
         if not id_paciente_evolucao or not descricao_evolucao:
-            st.warning("⚠️ Os campos 'Código/ID' e 'Evolução Clínica' são obrigatórios!")
+            st.warning("⚠️ Os campos 'Código/ID' e 'Evolução Clínica' são obrigatórios para o prontuário!")
         elif gspread_client is None:
             st.error("❌ Não há conexão ativa com o Google Sheets.")
         else:
@@ -210,28 +206,29 @@ with tab3:
                 except Exception as e:
                     st.error(f"Erro ao salvar evolução na nuvem: {e}")
 
+# --- ABA 4: AGENDA INTEGRADA E MARCAÇÃO DE CONSULTAS ---
 with tab4:
-    st.header("📅 Agenda de Atendimentos")
-    st.write("Controle de horários e agendamentos da clínica sincronizado com a nuvem.")
+    st.header("📅 Agenda Avançada de Atendimentos")
+    st.write("Gerencie os horários, marcações e status das consultas integradas diretamente com a nuvem.")
     
-    with st.form("form_agenda", clear_on_submit=True):
+    with st.form("form_agenda_avancada", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             data_agenda = st.text_input("Data do Atendimento (DD/MM/AAAA):", placeholder="17/08/2026")
-            horario_agenda = st.text_input("Horário (HH:MM):", placeholder="14:00")
+            horario_agenda = st.text_input("Horário da Consulta (HH:MM):", placeholder="09:00")
         with col2:
-            paciente_agenda = st.text_input("Nome do Paciente:", placeholder="Nome completo do paciente")
-            status_agenda = st.selectbox("Status Inicial:", ["Agendado", "Confirmado", "Cancelado", "Atendido"])
+            paciente_agenda = st.text_input("Nome Completo do Paciente:", placeholder="Nome do paciente para a agenda")
+            status_agenda = st.selectbox("Status Inicial do Agendamento:", ["Agendado", "Confirmado", "Atendido", "Falta Justificada", "Falta Sem Justificativa", "Cancelado"])
             
-        botao_salvar_agenda = st.form_submit_button("💾 Confirmar Agendamento na Nuvem")
+        botao_salvar_agenda = st.form_submit_button("💾 Confirmar e Agendar na Nuvem")
         
     if botao_salvar_agenda:
         if not data_agenda or not paciente_agenda:
-            st.warning("⚠️ Os campos 'Data' e 'Nome do Paciente' são obrigatórios!")
+            st.warning("⚠️ A 'Data' e o 'Nome do Paciente' são campos obrigatórios para reservar o horário!")
         elif gspread_client is None:
             st.error("❌ Não há conexão ativa com o Google Sheets.")
         else:
-            with st.spinner("Gravando agendamento no Google Sheets..."):
+            with st.spinner("Sincronizando agendamento no Google Sheets..."):
                 try:
                     novo_agendamento = [
                         data_agenda,
@@ -240,12 +237,12 @@ with tab4:
                         status_agenda
                     ]
                     aba_agenda.append_row(novo_agendamento)
-                    st.success(f"🎉 Compromisso com '{paciente_agenda}' agendado com sucesso!")
+                    st.success(f"🎉 Horário agendado com sucesso para '{paciente_agenda}'!")
                 except Exception as e:
-                    st.error(f"Erro ao salvar agendamento na nuvem: {e}")
+                    st.error(f"Erro ao salvar compromisso na nuvem: {e}")
 
 # ==============================================================================
-# BLOCO 5 DE 5: ABA 5 — CENTRAL DO PACIENTE (PRONTUÁRIO DIGITAL ÚNICO)
+# BLOCO 5 DE 5: ABA 5 — CENTRAL DO PACIENTE (PRONTUÁRIO DIGITAL UNIFICADO)
 # ==============================================================================
 with tab5:
     st.header("📂 Central do Paciente — Prontuário Digital Único")
@@ -255,88 +252,106 @@ with tab5:
         st.error("❌ Conexão com a nuvem indisponível. Não é possível carregar os prontuários.")
     else:
         try:
-            # Puxa todas as linhas da aba de identificação para listar os pacientes
+            # Puxa todas as linhas de identificação cadastrados para alimentar a lista de busca
             registros_id = aba_identificacao.get_all_records()
             
-            # Filtra e monta a lista apenas com os nomes dos pacientes para o selectbox
-            lista_nomes_pacientes = [p.get("Nome Completo", "") for p in registros_id if p.get("Nome Completo", "")]
-            lista_nomes_pacientes = sorted(list(set(lista_nomes_pacientes)))  # Remove duplicados e ordena
+            lista_nomes_pacientes = []
+            for p in registros_id:
+                nome_p = p.get("Nome Completo", "") or p.get("Nome Completo:", "")
+                if nome_p:
+                    lista_nomes_pacientes.append(str(nome_p))
+            
+            # Remove duplicados e ordena em ordem alfabética
+            lista_nomes_pacientes = sorted(list(set(lista_nomes_pacientes)))
             
             if not lista_nomes_pacientes:
                 st.info("💡 Nenhum paciente cadastrado no Google Sheets até o momento. Vá para a Aba 1.")
             else:
                 paciente_selecionado = st.selectbox("🔍 Selecione o Paciente para abrir a Pasta Digital:", lista_nomes_pacientes)
                 
-                # Encontra a linha de dados cadastrais do paciente selecionado
-                dados_cadastrais = next((p for p in registros_id if p.get("Nome Completo", "") == paciente_selecionado), None)
+                # Localiza o dicionário com os dados cadastrais do paciente escolhido
+                dados_cadastrais = None
+                for p in registros_id:
+                    nome_verificar = p.get("Nome Completo", "") or p.get("Nome Completo:", "")
+                    if str(nome_verificar) == paciente_selecionado:
+                        dados_cadastrais = p
+                        break
                 
                 if dados_cadastrais:
-                    id_atual = dados_cadastrais.get("Código/ID do Paciente (Ex: PAC001):", "") or dados_cadastrais.get("ID", "")
-                    # Tenta pegar por índice caso a chave mude ligeiramente
+                    # Captura o ID do paciente de forma flexível de acordo com o cabeçalho
+                    id_atual = dados_cadastrais.get("Código/ID do Paciente (Ex: PAC001):", "") or dados_cadastrais.get("ID", "") or dados_cadastrais.get("id", "")
                     if not id_atual and len(dados_cadastrais.values()) > 0:
-                        id_atual = list(dados_cadastrais.values())[0]
-                        
-                    st.markdown("---")
+                        id_atual = list(dados_cadastrais.values())[0] # Fallback se o cabeçalho falhar
                     
-                    # Painel 1: Dados Cadastrais Básicos
-                    st.subheader("📋 Informações Cadastrais")
+                    st.markdown("---")
+                    st.subheader("📋 Informações Cadastrais Básicas")
                     col_id1, col_id2 = st.columns(2)
                     with col_id1:
-                        st.markdown(f"**ID do Paciente:** {id_atual}")
-                        st.markdown(f"**Nome Completo:** {dados_cadastrais.get('Nome Completo:', '') or dados_cadastrais.get('Nome Completo', '')}")
-                        st.markdown(f"**Data de Nascimento:** {dados_cadastrais.get('Data de Nascimento (DD/MM/AAAA):', '') or dados_cadastrais.get('Data de Nascimento', '')}")
+                        st.markdown(f"**ID do Paciente:** `{id_atual}`")
+                        st.markdown(f"**Nome Completo:** {paciente_selecionado}")
+                        st.markdown(f"**Data de Nascimento:** {dados_cadastrais.get('Data de Nascimento (DD/MM/AAAA):', 'Não informada')}")
                     with col_id2:
-                        st.markdown(f"**Idade:** {dados_cadastrais.get('Idade:', '') or dados_cadastrais.get('Idade', '')}")
-                        st.markdown(f"**Responsável:** {dados_cadastrais.get('Nome do Responsável (Se menor):', '') or dados_cadastrais.get('Nome do Responsável', '')}")
-                        st.markdown(f"**Contato:** {dados_cadastrais.get('Telefone de Contato (Com DDD):', '') or dados_cadastrais.get('Telefone de Contato', '')}")
+                        st.markdown(f"**Idade:** {dados_cadastrais.get('Idade:', '') or dados_cadastrais.get('Idade', 'Não informada')}")
+                        st.markdown(f"**Responsável:** {dados_cadastrais.get('Nome do Responsável (Se menor):', 'Não informado')}")
+                        st.markdown(f"**Contato:** {dados_cadastrais.get('Telefone de Contato (Com DDD):', 'Não informado')}")
                     
-                    st.info(f"**Queixa Principal:** {dados_cadastrais.get('Queixa Principal (Breve resumo):', '') or dados_cadastrais.get('Queixa Principal', '')}")
+                    queixa = dados_cadastrais.get('Queixa Principal (Breve resumo):', '') or dados_cadastrais.get('Queixa Principal', 'Não registrada')
+                    st.info(f"**Queixa Principal Registrada:** {queixa}")
                     
-                    # Painel 2: Histórico de Anamnese Relacionado
+                    # --- PAINEL 2: HISTÓRICO CLÍNICO DA ANAMNESE ---
                     st.markdown("---")
-                    st.subheader("🩺 Histórico Clínico (Anamnese)")
+                    st.subheader("🩺 Histórico de Desenvolvimento (Anamnese)")
                     try:
                         registros_anamnese = aba_anamnese.get_all_records()
-                        # Procura a anamnese que bate com o ID do paciente
-                        anamnese_paciente = next((a for a in registros_anamnese if str(list(a.values())[0]) == str(id_atual)), None)
+                        anamnese_paciente = None
+                        for a in registros_anamnese:
+                            id_an_verificar = a.get("Código/ID do Paciente Cadastrado (Deve ser igual ao da Aba 1):", "") or a.get("ID", "")
+                            if not id_an_verificar and len(a.values()) > 0:
+                                id_an_verificar = list(a.values())[0]
+                            if str(id_an_verificar).strip() == str(id_atual).strip():
+                                anamnese_paciente = a
+                                break
                         
                         if anamnese_paciente:
-                            chaves_an = list(anamnese_paciente.keys())
-                            st.markdown(f"**Marcos de Desenvolvimento Motor:** {anamnese_paciente.get(chaves_an[1], 'Não informado') if len(chaves_an) > 1 else ''}")
-                            st.markdown(f"**Desenvolvimento de Linguagem:** {anamnese_paciente.get(chaves_an[2], 'Não informado') if len(chaves_an) > 2 else ''}")
-                            st.markdown(f"**Compreensão:** {anamnese_paciente.get(chaves_an[3], 'Não informado') if len(chaves_an) > 3 else ''}")
-                            st.markdown(f"**Comportamento:** {anamnese_paciente.get(chaves_an[4], 'Não informado') if len(chaves_an) > 4 else ''}")
-                            st.markdown(f"**Alimentação (Funções Estomatognáticas):** {anamnese_paciente.get(chaves_an[5], 'Não informado') if len(chaves_an) > 5 else ''}")
-                            st.markdown(f"**Respiração e Sono:** {anamnese_paciente.get(chaves_an[6], 'Não informado') if len(chaves_an) > 6 else ''}")
-                            st.markdown(f"**Histórico Médico/Familiar:** {anamnese_paciente.get(chaves_an[7], 'Não informado') if len(chaves_an) > 7 else ''}")
+                            st.markdown(f"**Marcos do Desenvolvimento Motor:** {anamnese_paciente.get('Marcos de Desenvolvimento Motor (Sentou, andou no tempo esperado?):', 'Não informado')}")
+                            st.markdown(f"**Desenvolvimento da Linguagem e Fala:** {anamnese_paciente.get('Desenvolvimento da Linguagem (Primeiras palavras, balbucios?):', 'Não informado')}")
+                            st.markdown(f"**Capacidade de Compreensão:** {anamnese_paciente.get('Compreensão (Atende a comandos, atende quando chamado?):', 'Não informado')}")
+                            st.markdown(f"**Padrão Comportamental:** {anamnese_paciente.get('Comportamento e Interação Social:', 'Não informado')}")
+                            st.markdown(f"**Histórico Alimentar:** {anamnese_paciente.get('Histórico de Alimentação (Mastigação, seletividade alimentar, engasgos?):', 'Não informado')}")
+                            st.markdown(f"**Respiração e Sono:** {anamnese_paciente.get('Respiração e Sono (Respira pela boca, ronca, sono agitado?):', 'Não informado')}")
+                            st.markdown(f"**Histórico Médico e Antecedentes Familiares:** {anamnese_paciente.get('Histórico Médico, Exames e Antecedentes Familiares relevantes:', 'Não informado')}")
                         else:
-                            st.warning("⚠️ Nenhuma anamnese clínica foi preenchida para este paciente ainda.")
+                            st.warning("⚠️ Nenhuma anamnese clínica foi preenchida para este ID até o momento.")
                     except Exception as e_an:
-                        st.caption(f"Não foi possível processar os campos de anamnese: {e_an}")
+                        st.caption(f"Não foi possível processar campos textuais da anamnese: {e_an}")
                         
-                    # Painel 3: Histórico de Evoluções das Sessões
+                    # --- PAINEL 3: LINHA DO TEMPO DAS SESSÕES CLÍNICAS ---
                     st.markdown("---")
                     st.subheader("📈 Linha do Tempo de Atendimentos (Evoluções)")
                     try:
                         registros_evolucoes = aba_evolucao.get_all_records()
-                        evolucoes_paciente = [e for e in registros_evolucoes if str(list(e.values())[0]) == str(id_atual)]
+                        evolucoes_paciente = []
+                        for e in registros_evolucoes:
+                            id_ev_verificar = e.get("Código/ID do Paciente:", "") or e.get("ID", "")
+                            if not id_ev_verificar and len(e.values()) > 0:
+                                id_ev_verificar = list(e.values())[0]
+                            if str(id_ev_verificar).strip() == str(id_atual).strip():
+                                evolucoes_paciente.append(e)
                         
                         if not evolucoes_paciente:
-                            st.info("💡 Nenhuma sessão evolutiva registrada para este paciente.")
+                            st.info("💡 Nenhuma sessão evolutiva registrada para este paciente ainda.")
                         else:
                             for idx, ev in enumerate(evolucoes_paciente):
-                                chaves_ev = list(ev.keys())
-                                data_ev = ev.get(chaves_ev[1], 'Sem Data') if len(chaves_ev) > 1 else 'Sem Data'
-                                tipo_ev = ev.get(chaves_ev[2], 'Sessão') if len(chaves_ev) > 2 else 'Sessão'
-                                desc_ev = ev.get(chaves_ev[3], '') if len(chaves_ev) > 3 else ''
-                                orient_ev = ev.get(chaves_ev[4], '') if len(chaves_ev) > 4 else ''
+                                d_ev = ev.get("Data da Sessão (DD/MM/AAAA):", "Sem Data")
+                                t_ev = ev.get("Tipo de Atendimento:", "Sessão")
+                                desc_ev = ev.get("Evolução Clínica (Conduta, desempenho e respostas aos estímulos):", "")
+                                casa_ev = ev.get("Orientações para Casa / Planejamento Próxima Sessão:", "")
                                 
-                                with st.expander(f"🗓️ Sessão em {data_ev} — Tipo: {tipo_ev}"):
+                                with st.expander(f"🗓️ Sessão em {d_ev} — Tipo: {t_ev}"):
                                     st.markdown(f"**Conduta e Evolução:** {desc_ev}")
-                                    if orient_ev:
-                                        st.markdown(f"**Orientações enviadas para casa:** {orient_ev}")
+                                    if casa_ev:
+                                        st.markdown(f"**Orientações passadas aos responsáveis:** {casa_ev}")
                     except Exception as e_ev:
-                        st.caption(f"Não foi possível processar a linha de evoluções: {e_ev}")
+                        st.caption(f"Não foi possível processar a linha do tempo de evoluções: {e_ev}")
         except Exception as e:
-            st.error(f"Erro ao carregar Central do Paciente: {e}")
-            st.info("Certifique-se de que a planilha do Google Sheets possui dados válidos e cabeçalhos na primeira linha.")
+            st.error(f"Erro ao carregar a Central do Paciente: {e}")

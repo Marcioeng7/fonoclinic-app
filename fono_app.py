@@ -442,7 +442,7 @@ with aba5:
             if st.button("⚙️ Compilar Prontuário Completo (PDF)", key="btn_pdf_direto_pasta"):
                 st.info("Prontuário compilado no buffer do FonoClinic com sucesso!")
                 pdf_buf = io.BytesIO()
-                pdf_buf.write(b"Prontuário Completo FonoClinic")
+                pdf_buf.write(b"Prontuario Completo FonoClinic")
                 st.download_button("📥 Baixar PDF do Prontuário", data=pdf_buf.getvalue(), file_name=f"prontuario_{paciente_pasta.lower().replace(' ', '_')}.pdf", mime="application/pdf")
 
             st.markdown("---")

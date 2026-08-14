@@ -78,7 +78,7 @@ with aba1:
             st.success(f"Cadastro de '{nome_paciente}' realizado! Siga para a aba Anamnese.")
 
 # =====================================================================
-# ABA 2: ANAMNESE CLINICA DEFINITIVA
+# ABA 2: ANAMNESE CLINICA DEFINITIVA COM EXAMES
 # =====================================================================
 with aba2:
     st.header("Anamnese — FonoClinic")
@@ -98,18 +98,50 @@ with aba2:
             st.text_input("Com quem passa mais tempo:")
             pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes")
 
-        # --- BLOCO 2: MARCOS MOTORES E AUDIÇÃO ---
-        with st.expander("🦶 Marcos Motores e Histórico Auditivo", expanded=False):
+        # --- BLOCO 2: MARCOS MOTORES, MARCOS DE FALA E ROTINA DE TELAS ---
+        with st.expander("🦶 Marcos de Desenvolvimento e Rotina de Telas", expanded=False):
             col_m1, col_m2 = st.columns(2)
             idade_sentou = col_m1.text_input("Com qual idade sentou?")
             idade_andou = col_m2.text_input("Com qual idade andou?")
             
             st.markdown("---")
-            pergunta_sim_nao("Fez o Teste da Orelhinha?", "teste_orelha")
-            pergunta_sim_nao("Apresenta infecções de ouvido recorrentes?", "inf_ouvido", True, "Frequência?")
-            pergunta_sim_nao("Possui exame de BERA ou Audiometria recente?", "bera_audio", True, "Resultado/Data?")
+            st.write("**🧏 Marcos de Fala e Comunicação:**")
+            idade_primeiras_palavras = st.text_input("Com qual idade falou as primeiras palavras?")
+            como_se_comunica_atualmente = st.text_area("Como se comunica atualmente (Gestos, palavras isoladas, frases curtas, choro)?")
+            
+            st.markdown("---")
+            st.write("**📱 Uso de Eletrônicos / Telas:**")
+            tempo_telas = st.selectbox("Tempo diário estimado de exposição a telas (Celular, Tablet, TV):", [
+                "", "Não utiliza", "Até 1 hora por dia", "De 1 a 3 horas por dia", "De 3 a 5 horas por dia", "Mais de 5 horas por dia"
+            ])
+            detalhe_telas = st.text_input("Quais conteúdos costuma assistir ou jogar?")
 
-        # --- BLOCO 3: LINGUAGEM E SOCIAIS ---
+        # --- BLOCO 3: NOVO! EXAMES E AVALIAÇÕES COMPLEMENTARES ---
+        with st.expander("🩺 Exames e Avaliações Complementares", expanded=False):
+            st.write("**🦻 Histórico e Exames Auditivos:**")
+            pergunta_sim_nao("Fez o Teste da Orelhinha na maternidade?", "teste_orelha")
+            pergunta_sim_nao("Apresenta infecções de ouvido (otites) recorrentes?", "inf_ouvido", True, "Teve quantas ou usou carretel?")
+            pergunta_sim_nao("Possui exame de Audiometria / Imitanciometria recente?", "audio_recente", True, "Resultado/Data?")
+            pergunta_sim_nao("Possui exame do BERA (PEATE) recente?", "bera_audio", True, "Resultado/Data?")
+            
+            st.markdown("---")
+            st.write("**🧠 Histórico Neurológico e Genético:**")
+            pergunta_sim_nao("Já realizou exame de EEG (Eletroencefalograma)?", "eeg_exame", True, "Resultado/Teve alteração?")
+            pergunta_sim_nao("Já realizou Ressonância Magnética (RM) do crânio?", "rm_cranio", True, "Resultado?")
+            pergunta_sim_nao("Está em investigação genética ou possui Cariótipo/Painel?", "genetica_painel", True, "Qual o resultado?")
+            
+            st.markdown("---")
+            st.write("**👁️ Visão, Outros Exames e Acompanhamento Médico:**")
+            pergunta_sim_nao("Possui Avaliação Visual / Oftalmológica recente?", "visao_oftalmo", True, "Usa óculos ou tem estrabismo?")
+            pergunta_sim_nao("Já realizou exame de Processamento Auditivo Central (PAC)?", "pac_exame", True, "Resultado?")
+            pergunta_sim_nao("O Teste do Pezinho ou Teste do Linguinho teve alguma alteração?", "pezinho_linguinho", True, "Qual alteração?")
+            
+            st.markdown("---")
+            st.write("**🏫 Histórico Escolar e Relatórios:**")
+            pergunta_sim_nao("A escola ou creche enviou algum Relatório Pedagógico?", "relatorio_escola", True, "Quais as queixas principais da escola?")
+            pergunta_sim_nao("Passa por consulta regular com Neuropediatra ou Psiquiatra Infantil?", "medico_especialista", True, "Nome do médico e frequência?")
+
+        # --- BLOCO 4: LINGUAGEM E SOCIAIS ---
         with st.expander("🗣️ Comunicação, Interação e Conhecimentos Básicos", expanded=False):
             pergunta_sim_nao("Verbal:", "verbal")
             pergunta_sim_nao("Interage bem:", "interage")
@@ -135,7 +167,7 @@ with aba2:
             pergunta_sim_nao("Nomeia animais?", "nomeia_animais")
             pergunta_sim_nao("Sabe as emoções?", "emocoes")
 
-        # --- BLOCO 4: COMPORTAMENTO E ROTINA ---
+        # --- BLOCO 5: COMPORTAMENTO E ROTINA ---
         with st.expander("🧠 Rotina, Comportamento e Sinais de Alerta", expanded=False):
             pergunta_sim_nao("Seletividade alimentar:", "seletividade")
             pergunta_sim_nao("Dorme bem:", "dorme_bem")
@@ -152,7 +184,7 @@ with aba2:
             pergunta_sim_nao("Auto-agressão:", "auto_agressao")
             pergunta_sim_nao("Agressivo com os outros:", "agressivo", True, "Em quais momentos?")
 
-        # --- BLOCO 5: HISTÓRICO ALIMENTAR E AUTONOMIA ---
+        # --- BLOCO 6: HISTÓRICO ALIMENTAR E AUTONOMIA ---
         with st.expander("🚽 Autonomia, Alimentação e Histórico de Desenvolvimento", expanded=False):
             pergunta_sim_nao("Usa Fralda?", "fralda")
             pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "banheiro")
@@ -182,9 +214,10 @@ with aba2:
         if st.button("💾 Salvar Anamnese Expandida", key="btn_salvar_anamnese"):
             st.session_state.pacientes[paciente_anamnese]["anamnese"] = {
                 "queixa": queixa, "realizada_com": realizada_com, "idade_sentou": idade_sentou,
-                "idade_andou": idade_andou, "mastigacao": mastigacao_degluticao
+                "idade_andou": idade_andou, "mastigacao": mastigacao_degluticao, 
+                "idade_fala": idade_primeiras_palavras, "tempo_telas": tempo_telas
             }
-            st.success(f"Anamnese de '{paciente_anamnese}' salva localmente com sucesso!")
+            st.success(f"Anamnese completa de '{paciente_anamnese}' salva localmente com sucesso!")
 
 # =====================================================================
 # ABA 3: GESTÃO DE PACOTES, SALDOS E SESSÕES REALIZADAS
@@ -336,7 +369,7 @@ with aba5:
             st.info("Nenhum compromisso marcado para esta semana.")
         else:
             for idx, ag in enumerate(st.session_state.agenda):
-                # LINHA CORRIGIDA AQUI: Adicionado o número 3 dentro do columns
+                # CORRIGIDO: Dividindo o layout em 3 colunas perfeitamente para evitar erros de renderização
                 col_c1, col_c2, col_c3 = st.columns(3)
                 col_c1.write(f"📌 **{ag['hora']}** - {ag['paciente']} ({ag['data']})")
                 col_c2.write(f"*{ag['status']}*")

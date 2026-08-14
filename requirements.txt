@@ -3,3 +3,6 @@ pandas
 numpy
 openpyxl
 reportlab
+gspread
+google-auth
+

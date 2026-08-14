@@ -336,7 +336,8 @@ with aba5:
             st.info("Nenhum compromisso marcado para esta semana.")
         else:
             for idx, ag in enumerate(st.session_state.agenda):
-                col_c1, col_c2, col_c3 = st.columns()
+                # LINHA CORRIGIDA AQUI: Adicionado o número 3 dentro do columns
+                col_c1, col_c2, col_c3 = st.columns(3)
                 col_c1.write(f"📌 **{ag['hora']}** - {ag['paciente']} ({ag['data']})")
                 col_c2.write(f"*{ag['status']}*")
                 

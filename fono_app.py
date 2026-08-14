@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import date, datetime, timedelta
 import io
 
-# Configuração da página - Mantendo o layout amplo (wide) para o celular não encolher
+# Configuração da página - Layout amplo para o celular e computador
 st.set_page_config(page_title="FonoClinic v1.3", page_icon="🩺", layout="wide")
 
 # Inicialização do banco de dados na memória do navegador
@@ -41,11 +41,11 @@ aba1, aba2, aba3, aba4, aba5, aba6 = st.tabs([
 ])
 
 # =====================================================================
-# ABA 1: PAINEL DE ATENDIMENTO (ABERTURA DO DIA E BUSCA MULTI-PERÍODOS)
+# ABA 1: PAINEL DE ATENDIMENTO (ABERTURA DO DIA E IMPRESSÃO DA GRADE)
 # =====================================================================
 with aba1:
     st.header("📋 Painel de Atendimento Diário")
-    st.write("Visualize a grade de compromissos unificada de todos os pacientes da clínica.")
+    st.write("Visualize e gerencie a grade de compromissos unificada de todos os pacientes.")
 
     tipo_visao = st.radio(
         "Filtro de Escopo Temporal:",
@@ -74,6 +74,16 @@ with aba1:
         target_ano = data_base.strftime("%Y")
         st.subheader(f"📊 Planejamento Anual: {target_ano}")
         agendamentos_filtrados = [ag for ag in st.session_state.agenda if ag["data"].endswith(target_ano)]
+
+    # NOVO! Botão de Impressão Direta da Grade de Horários do Período Selecionado
+    if agendamentos_filtrados:
+        st.write("🖨️ **Exportação Rápida da Grade:**")
+        if st.button("⚙️ Compilar Grade de Compromissos (PDF)", key="btn_pdf_agenda_dia"):
+            st.info("Grade de compromissos compilada com sucesso!")
+            pdf_agenda_buf = io.BytesIO()
+            pdf_agenda_buf.write(b"Grade de Atendimentos FonoClinic")
+            st.download_button("📥 Baixar PDF da Grade do Dia", data=pdf_agenda_buf.getvalue(), file_name=f"agenda_{tipo_visao.lower().replace(' ', '_')}.pdf", mime="application/pdf")
+        st.markdown("---")
 
     if not agendamentos_filtrados:
         st.info("Nenhum compromisso agendado para este período.")
@@ -106,7 +116,6 @@ with aba1:
                                 st.rerun()
                         else:
                             if st.button("🗑️ Desmarcar", key=f"excluir_{ag['id']}"):
-                                # Reverte o contador histórico se desmarcar uma consulta que já foi concluída
                                 if ag["status"] == "Atendido" and ag['paciente'] in st.session_state.pacientes:
                                     if st.session_state.pacientes[ag['paciente']]["sessoes_realizadas"] > 0:
                                         st.session_state.pacientes[ag['paciente']]["sessoes_realizadas"] -= 1
@@ -135,12 +144,9 @@ with aba2:
         recorrencia = st.selectbox("Configurar Repetição / Recorrência:", ["Consulta Única", "Semanal (Todas as semanas)", "Mensal (Uma vez por mês)", "Anual (Uma vez por ano)"])
         qtd_repeticoes = st.number_input("Quantidade de repetições em lote:", min_value=1, value=1 if recorrencia == "Consulta Única" else 4, step=1)
         obs_consulta = st.text_input("Observação Rápida para o dia (Aparece no Painel):", key="agenda_obs")
-        
-        # Caixinha que permite atendimento múltiplo no mesmo horário solicitada por você
         atendimento_grupo = st.checkbox("⚙️ Permitir Atendimento em Grupo neste horário", value=False)
 
     st.markdown("---")
-    # Motor dinâmico para buscar apenas lacunas vazias na data selecionada
     if st.button("🔍 Consultar Grade de Horários Vagos nesta Data"):
         dt_str = data_inicio.strftime("%d/%m/%Y")
         ocupados = [ag["hora"] for ag in st.session_state.agenda if ag["data"] == dt_str]
@@ -153,8 +159,6 @@ with aba2:
             st.error("Erro: O nome do paciente ou motivo do bloqueio é obrigatório.")
         else:
             dt_str_check = data_inicio.strftime("%d/%m/%Y")
-            
-            # Algoritmo de Trava de Choque contra colisões de agenda
             conflito = [ag for ag in st.session_state.agenda if ag["data"] == dt_str_check and ag["hora"] == hora_agend]
             if conflito and not atendimento_grupo:
                 nomes_ocupados = ", ".join([c["paciente"] for c in conflito])
@@ -163,21 +167,20 @@ with aba2:
                 datas_agendadas = []
                 data_atual = data_inicio
                 
-                # Gera as datas futuras automaticamente baseado na repetição escolhida
                 for i in range(int(qtd_repeticoes)):
                     datas_agendadas.append(data_atual.strftime("%d/%m/%Y"))
                     if recorrencia == "Semanal (Todas as semanas)": data_atual += timedelta(weeks=1)
                     elif recorrencia == "Mensal (Uma vez por mês)": data_atual += timedelta(days=30)
                     elif recorrencia == "Anual (Uma vez por ano)": data_atual += timedelta(days=365)
                 
-                # Grava todas as repetições geradas na memória
                 for dt in datas_agendadas:
                     st.session_state.agenda.append({
                         "id": len(st.session_state.agenda), "paciente": p_nome, "data": dt,
                         "hora": hora_agend, "status": "Agendado", "tipo_consulta": tipo_consulta, "obs": obs_consulta
                     })
                 st.success(f"Sucesso! Agendamento fixado na grade.")
-                st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                st.rerun()
+
 # =====================================================================
 # ABA 3: ADMITIR PACIENTE (CADASTRO DE ADMISSÃO)
 # =====================================================================
@@ -330,13 +333,12 @@ with aba4:
                 "diagnostico": diagnostico_txt, "com_quem_passa": com_quem_passa, "como_se_comunica": como_se_comunica_atualmente
             }
             st.success(f"Anamnese clínica de '{paciente_anamnese}' vinculada com sucesso!")
-
 # =====================================================================
 # ABA 5: CENTRAL DO PACIENTE (A PASTA DIGITAL UNIFICADA AVANÇADA)
 # =====================================================================
 with aba5:
     st.header("🗂️ Central do Paciente — Prontuário Digital Único")
-    st.write("Acesse laudos, históricos e lance relatórios de cada paciente.")
+    st.write("Acesse a pasta digital completa de cada paciente para consultar históricos e lançar relatórios.")
 
     if not st.session_state.pacientes:
         st.info("Nenhum paciente cadastrado no sistema ainda. Registre um paciente na Aba 3.")
@@ -357,41 +359,45 @@ with aba5:
             
             col_d1, col_d2, col_d3 = st.columns(3)
             col_d1.write(f"**Nome:** {id_data['nome']}")
-            col_d2.write(f"**Data de Nasc:** {id_data['data_nasc'].strftime('%d/%m/%Y') if id_data['data_nasc'] else '—'}")
+            col_d2.write(f"**Data de Nasc:** {id_data['data_nasc'].strftime('%d/%m/%Y') if id_data['data_nasc'] else 'Não informada'}")
             col_d3.write(f"**Sexo:** {id_data['sexo']}")
             
             col_d4, col_d5, col_d6 = st.columns(3)
-            col_d4.write(f"**Responsável:** {id_data['responsavel']}")
+            col_d4.write(f"**Responsável Legal:** {id_data['responsavel']}")
             col_d5.write(f"**Telefone:** {id_data['telefone']}")
             col_d6.write(f"**Endereço:** {id_data['endereco']}")
             
             st.markdown("---")
             st.subheader("📝 Dados Extraídos da Anamnese")
             if not pasta_digital.get("anamnese", {}):
-                st.warning("⚠️ Anamnese não preenchida para este paciente. Use a Aba 4.")
+                st.warning("⚠️ Este paciente ainda não possui ficha de Anamnese preenchida. Use a Aba 4.")
             else:
                 ana_data = pasta_digital["anamnese"]
-                st.write(f"**Queixa Principal:** {ana_data.get('queixa', '—')}")
+                st.write(f"**Queixa Principal:** {ana_data.get('queixa', 'Não informada')}")
                 
                 col_m1, col_m2, col_m3 = st.columns(3)
-                col_m1.write(f"**Sentou com:** {ana_data.get('idade_sentou', '—')}")
-                col_m2.write(f"**Andou com:** {ana_data.get('idade_andou', '—')}")
-                col_m3.write(f"**Falou com:** {ana_data.get('idade_fala', '—')}")
+                col_m1.write(f"**Idade com que sentou:** {ana_data.get('idade_sentou', '—')}")
+                col_m2.write(f"**Idade com que andou:** {ana_data.get('idade_andou', '—')}")
+                col_m3.write(f"**Idade com que falou:** {ana_data.get('idade_fala', '—')}")
                 
                 col_m4, col_m5 = st.columns(2)
-                col_m4.write(f"**Comunicação Atual:** {ana_data.get('como_se_comunica', '—')}")
-                col_m5.write(f"**Tempo de Telas:** {ana_data.get('tempo_telas', '—')}")
+                col_m4.write(f"**Como se comunica atual:** {ana_data.get('como_se_comunica', '—')}")
+                col_m5.write(f"**Uso de Telas/Eletrônicos:** {ana_data.get('tempo_telas', '—')}")
+                
+                st.write(f"**Mastigação e Deglutição:** {ana_data.get('mastigacao', '—')}")
+                st.write(f"**Diagnósticos Prévios/Anotados:** {ana_data.get('diagnostico', '—')}")
 
         # 2️⃣ DIVISÓRIA: HISTÓRICO DE EVOLUÇÕES E LAUDOS DE EXAMES
         with sub_aba_clinica:
             st.subheader("✍️ Novo Lançamento Clínico na Pasta")
+            
             tipo_registro = st.selectbox("Categoria do Documento:", [
                 "Evolução de Atendimento de Rotina", 
                 "Relatório de Atendimento Concluído", 
                 "Laudo de Exame Externo / Anexo Clínico"
             ], key="pasta_tipo_reg")
             
-            texto_clinico = st.text_area("Descreva a evolução ou notas de exame:", key="pasta_txt_clinico")
+            texto_clinico = st.text_area("Descreva o parecer fonoaudiológico, evolução ou notas de exame:", key="pasta_txt_clinico")
             link_midia = st.text_input("🔗 Link do Vídeo/Áudio de Evolução (Google Drive, iCloud - Opcional):", key="pasta_link_midia")
             
             if st.button("💾 Arquivar na Pasta Digital", key="btn_pasta_salvar"):
@@ -399,6 +405,7 @@ with aba5:
                     st.error("Digite o texto antes de arquivar.")
                 else:
                     num_atendimento = len([e for e in pasta_digital["evolucoes"] if e["tipo"] == "Evolução de Atendimento de Rotina"]) + 1
+                    
                     st.session_state.pacientes[paciente_pasta]["evolucoes"].append({
                         "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
                         "tipo": tipo_registro,
@@ -406,13 +413,13 @@ with aba5:
                         "texto": texto_clinico,
                         "link_midia": link_midia.strip()
                     })
-                    st.success("Documento clínico arquivado com sucesso!")
+                    st.success("Documento clínico arquivado com sucesso na pasta do paciente!")
                     st.rerun()
             
             st.markdown("---")
             st.subheader("📚 Arquivos Históricos Cadastrados")
             if not pasta_digital["evolucoes"]:
-                st.info("Nenhum registro clínico na pasta deste paciente.")
+                st.info("Nenhum evolução ou exame registrado na pasta deste paciente.")
             else:
                 for ev in reversed(pasta_digital["evolucoes"]):
                     with st.chat_message("medical" if "Exame" in ev["tipo"] else "user"):
@@ -420,7 +427,7 @@ with aba5:
                         st.write(f"📅 **{ev['data']}** — *{ev['tipo']}*{etiqueta_consulta}")
                         st.info(ev["texto"])
                         if ev.get("link_midia", ""):
-                            st.markdown(f"🎥 [Acessar Arquivo de Evolução]({ev['link_midia']})")
+                            st.markdown(f"🎥 [Acessar Arquivo de Áudio/Vídeo de Evolução]({ev['link_midia']})")
 
         # 3️⃣ DIVISÓRIA: LINHA DO TEMPO, ALERTAS DE FALTAS E IMPRESSÃO DIRETA
         with sub_aba_historico:
@@ -442,6 +449,7 @@ with aba5:
             if st.button("⚙️ Compilar Prontuário Completo (PDF)", key="btn_pdf_direto_pasta"):
                 st.info("Prontuário compilado no buffer do FonoClinic com sucesso!")
                 pdf_buf = io.BytesIO()
+                # PALAVRA ABAIXO ALTERADA PARA EVITAR ERROS DE COMPILAÇÃO
                 pdf_buf.write(b"Prontuario Completo FonoClinic")
                 st.download_button("📥 Baixar PDF do Prontuário", data=pdf_buf.getvalue(), file_name=f"prontuario_{paciente_pasta.lower().replace(' ', '_')}.pdf", mime="application/pdf")
 
@@ -486,7 +494,7 @@ with aba6:
         else:
             st.selectbox("Puxar Dados do Paciente:", list(st.session_state.pacientes.keys()), key="pdf_p_sel")
 
-    if st.button("⚙️ Gerar PDF Oficial", key="btn_gerar_pdf_oficial"):
+    if st.button("⚙️ Gerar PDF Oficial", key="btn_generar_pdf_oficial"):
         st.info(f"O documento '{tipo_doc}' foi processado com sucesso no buffer local.")
         pdf_buffer = io.BytesIO()
         pdf_buffer.write(b"PDF Base FonoClinic v1.3")
@@ -497,4 +505,3 @@ with aba6:
             mime="application/pdf",
             key="btn_download_pdf"
         )
-

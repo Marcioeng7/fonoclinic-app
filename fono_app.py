@@ -8,11 +8,10 @@ from google.oauth2.service_account import Credentials
 st.set_page_config(page_title="FonoClinic v1.3", page_icon="🩺", layout="wide")
 
 # =====================================================================
-# MOTOR DE CONEXÃO OFICIAL COM O GOOGLE SHEETS (CONEXÃO BLINDADA)
+# MOTOR DE CONEXÃO OFICIAL COM O GOOGLE SHEETS (CONEXÃO BLINDADA POR URL)
 # =====================================================================
 @st.cache_resource
 def conectar_banco_dados():
-    # Puxa as credenciais TOML salvas com segurança no Secrets do Streamlit Cloud
     info_chave = st.secrets["gcp_service_account"]
     escopos = [
         "https://googleapis.com",
@@ -20,8 +19,10 @@ def conectar_banco_dados():
     ]
     credenciais = Credentials.from_service_account_info(info_chave, scopes=escopos)
     cliente = gspread.authorize(credenciais)
-    # Abre a planilha principal cadastrada no seu Google Drive
-    return cliente.open("FonoClinic_DB")
+    
+    # Abrindo diretamente pelo link exato da sua planilha para evitar o Erro 404
+    link_planilha = "https://google.com"
+    return cliente.open_by_url(link_planilha)
 
 try:
     planilha_google = conectar_banco_dados()
@@ -163,13 +164,12 @@ with aba1:
                             st.rerun()
 
 # =====================================================================
-# ABA 2: MARCAR HORÁRIO (INTEGRADO COM GOOGLE SHEETS)
+# ABA 2: MARCAR HORÁRIO
 # =====================================================================
 with aba2:
     st.header("📅 Agendamento e Controle de Horários Vagos")
     st.write("Configure horários de atendimentos individuais, em grupo ou repetições em lote.")
     
-    # Puxa a lista de pacientes direto da aba identificacao do Sheets
     try:
         linhas_id_sheets = aba_sheets_id.get_all_records()
         lista_pacientes_sheets = [str(p.get("nome", "")) for p in linhas_id_sheets if p.get("nome", "")]
@@ -387,7 +387,7 @@ with aba5:
                     num_enviar = str(num_atendimento) if tipo_registro == "Evolução de Atendimento de Rotina" else ""
                     aba_sheets_evo.append_row([paciente_pasta, datetime.now().strftime("%d/%m/%Y %H:%M"), tipo_registro, num_enviar, texto_clinico, link_midia.strip()])
                     st.success("Documento clínico arquivado com sucesso!")
-                    st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
+                    st.rerun()
             
             st.markdown("---")
             if evolucoes_paciente:
@@ -398,6 +398,7 @@ with aba5:
                         etiqueta = f" (Atendimento Nº {num_str})" if num_str else ""
                         st.write(f"📅 **{ev.get('data', '')}** — *{tipo_ev}*{etiqueta}")
                         st.info(ev.get("texto", ""))
+
         # 3️⃣ DIVISÓRIA: LINHA DO TEMPO, INDICADORES E IMPRESSÃO DA PASTA CLOUD
         with sub_aba_historico:
             st.subheader("📈 Linha do Tempo e Indicadores do Caso")

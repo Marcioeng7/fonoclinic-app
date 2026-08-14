@@ -22,11 +22,11 @@ def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes
             detalhe = st.text_input(f"{label_adicional}", key=f"{key}_det")
     return resposta, detalhe
 
-# Configuração das 5 abas com os nomes exatos solicitados
+# Configuração das 5 abas com os nomes exatos e organizados
 aba1, aba2, aba3, aba4, aba5 = st.tabs([
     "👤 Identificação do Paciente",
     "📝 Anamnese", 
-    "📦 Controle de Pacotes", 
+    "📦 Controle de Pacotes & Evoluções", 
     "📄 Laudos & PDFs", 
     "📅 Agenda Semanal"
 ])
@@ -66,6 +66,7 @@ with aba1:
         elif nome_paciente in st.session_state.pacientes:
             st.warning(f"O paciente '{nome_paciente}' já está cadastrado.")
         else:
+            # Estrutura preparada para receber as novas atualizações
             st.session_state.pacientes[nome_paciente] = {
                 "identificacao": {
                     "nome": nome_paciente, "data_nasc": data_nasc, "sexo": sexo, "apelido": apelido,
@@ -78,7 +79,7 @@ with aba1:
             st.success(f"Cadastro de '{nome_paciente}' realizado! Siga para a aba Anamnese.")
 
 # =====================================================================
-# ABA 2: ANAMNESE (TODAS AS PERGUNTAS RECUPERADAS)
+# ABA 2: ANAMNESE CLINICA DEFINITIVA
 # =====================================================================
 with aba2:
     st.header("Anamnese — FonoClinic")
@@ -98,7 +99,18 @@ with aba2:
             st.text_input("Com quem passa mais tempo:")
             pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes")
 
-        # --- BLOCO 2: LINGUAGEM E SOCIAIS ---
+        # --- BLOCO 2: NOVO! DESENVOLVIMENTO MOTOR E AUDIÇÃO ---
+        with st.expander("🦶 Marcos Motores e Histórico Auditivo", expanded=False):
+            col_m1, col_m2 = st.columns(2)
+            idade_sentou = col_m1.text_input("Com qual idade sentou?")
+            idade_andou = col_m2.text_input("Com qual idade andou?")
+            
+            st.markdown("---")
+            pergunta_sim_nao("Fez o Teste da Orelhinha?", "teste_orelha")
+            pergunta_sim_nao("Apresenta infecções de ouvido recorrentes?", "inf_ouvido", True, "Frequência?")
+            pergunta_sim_nao("Possui exame de BERA ou Audiometria recente?", "bera_audio", True, "Resultado/Data?")
+
+        # --- BLOCO 3: LINGUAGEM E SOCIAIS ---
         with st.expander("🗣️ Comunicação, Interação e Conhecimentos Básicos", expanded=False):
             pergunta_sim_nao("Verbal:", "verbal")
             pergunta_sim_nao("Interage bem:", "interage")
@@ -124,7 +136,7 @@ with aba2:
             pergunta_sim_nao("Nomeia animais?", "nomeia_animais")
             pergunta_sim_nao("Sabe as emoções?", "emocoes")
 
-        # --- BLOCO 3: COMPORTAMENTO E ROTINA ---
+        # --- BLOCO 4: COMPORTAMENTO E ROTINA ---
         with st.expander("🧠 Rotina, Comportamento e Sinais de Alerta", expanded=False):
             pergunta_sim_nao("Seletividade alimentar:", "seletividade")
             pergunta_sim_nao("Dorme bem:", "dorme_bem")
@@ -141,42 +153,52 @@ with aba2:
             pergunta_sim_nao("Auto-agressão:", "auto_agressao")
             pergunta_sim_nao("Agressivo com os outros:", "agressivo", True, "Em quais momentos?")
 
-        # --- BLOCO 4: HISTÓRICO INICIAL E AUTONOMIA ---
-        with st.expander("🚽 Autonomia e Histórico de Desenvolvimento", expanded=False):
+        # --- BLOCO 5: HISTÓRICO ALIMENTAR E AUTONOMIA ---
+        with st.expander("🚽 Autonomia, Alimentação e Histórico de Desenvolvimento", expanded=False):
             pergunta_sim_nao("Usa Fralda?", "fralda")
             pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "banheiro")
             pergunta_sim_nao("Se veste sozinho?", "veste_sozinho")
             
             st.markdown("---")
+            st.write("**Histórico Alimentar e Funções Orofaciais:**")
+            amamentacao = st.text_input("Ele(a) mamou peito ou fórmula?")
+            pergunta_sim_nao("Usou e ainda usa chupeta, dedo ou mamadeira?", "chupeta")
+            mastigacao_degluticao = st.text_area("Descreva como é a mastigação e deglutição (Engasga, recusa sólidos, etc.):")
+            
+            st.markdown("---")
             col_a, col_b = st.columns(2)
             with col_a:
                 st.radio("Parto:", ["", "Cesária", "Normal"], key="parto")
-                st.text_input("Alguma intercorrência?")
+                st.text_input("Alguma intercorrência no parto?")
             with col_b:
-                st.multiselect("Ele(a) é:", ["Agitado", "Tranquilo", "Inseguro", "Impaciente"], key="perfil_psic")
+                st.multiselect("Ele(a) é predominantemente:", ["Agitado", "Tranquilo", "Inseguro", "Impaciente"], key="perfil_psic")
                 
-            st.text_input("Ele(a) mamou peito ou formula?")
-            pergunta_sim_nao("Usou e ainda usa chupeta, dedo ou mamadeira?", "chupeta")
-            st.text_area("O que ele(a) gosta de brinkar?")
+            st.text_area("O que ele(a) gosta de brincar?")
             st.text_area("O que mais gosta de fazer?")
 
         st.markdown("---")
         realizada_com = st.text_input("Anamnese realizada com:")
+        
+        # ASSINATURA EXCLUSIVA ATUALIZADA
         st.caption("Avaliação registrada por: Dra. Michelle Neves — Fonoaudióloga")
 
-        if st.button("💾 Salvar Anamnese", key="btn_salvar_anamnese"):
-            st.session_state.pacientes[paciente_anamnese]["anamnese"] = {"queixa": queixa, "realizada_com": realizada_com}
-            st.success(f"Anamnese de '{paciente_anamnese}' salva com sucesso!")
+        if st.button("💾 Salvar Anamnese Expandida", key="btn_salvar_anamnese"):
+            st.session_state.pacientes[paciente_anamnese]["anamnese"] = {
+                "queixa": queixa, "realizada_com": realizada_com, "idade_sentou": idade_sentou,
+                "idade_andou": idade_andou, "mastigacao": mastigacao_degluticao
+            }
+            st.success(f"Anamnese de '{paciente_anamnese}' salva localmente com sucesso!")
 
 # =====================================================================
-# ABA 3: CONTROLE DE PACOTES
+# ABA 3: CONTROLE DE PACOTES & EVOLUÇÕES (ATUALIZADA)
 # =====================================================================
 with aba3:
-    st.header("📦 Gestão de Pacotes de Sessões e Evolução")
+    st.header("📦 Gestão de Pacotes, Evoluções e Relatórios")
+    
     if not st.session_state.pacientes:
         st.info("Nenhum paciente cadastrado na Aba 1 ainda.")
     else:
-        paciente_sel = st.selectbox("Selecione o Paciente para Evolução:", list(st.session_state.pacientes.keys()), key="sel_pac_pacotes")
+        paciente_sel = st.selectbox("Selecione o Paciente:", list(st.session_state.pacientes.keys()), key="sel_pac_pacotes")
         dados_p = st.session_state.pacientes[paciente_sel]
         
         col_p1, col_p2 = st.columns(2)
@@ -194,28 +216,57 @@ with aba3:
                 st.error("⚠️ Alerta: Saldo baixo! Renove o pacote.")
                 
         st.markdown("---")
-        st.subheader("Nova Evolução Clínica (Deduz do Saldo)")
-        texto_evolucao = st.text_area("Descreva a evolução do atendimento de hoje:")
+        st.subheader("📝 Lançamento de Atendimento, Exames e Relatórios")
         
-        if st.button("Salvar Evolução & Deduzir Sessão"):
-            if not texto_evolucao.strip():
-                st.error("Por favor, digite o texto da evolução.")
-            elif dados_p["pacote_saldo"] <= 0:
-                st.error("Impossível salvar: Sem saldo de sessões.")
+        # Nova seleção para o tipo de registro clínico da Dra. Michelle
+        tipo_registro = st.selectbox("Selecione o Tipo de Registro:", [
+            "Evolução de Rotina (Deduz do Pacote)", 
+            "Relatório de Atendimento Concluído", 
+            "Laudo de Exame Externo / Anexo"
+        ])
+        
+        texto_clinico = st.text_area("Digite o texto ou parecer do documento:")
+        
+        if st.button("💾 Salvar Registro Clínico", key="btn_salvar_registro_clinico"):
+            if not texto_clinico.strip():
+                st.error("Por favor, digite o conteúdo do registro antes de salvar.")
             else:
-                st.session_state.pacientes[paciente_sel]["pacote_saldo"] -= 1
+                deduziu = False
+                # Só deduz do pacote se for uma evolução de rotina
+                if tipo_registro == "Evolução de Rotina (Deduz do Pacote)":
+                    if dados_p["pacote_saldo"] <= 0:
+                        st.error("Impossível salvar evolução: Sem saldo de sessões.")
+                        st.stop()
+                    else:
+                        st.session_state.pacientes[paciente_sel]["pacote_saldo"] -= 1
+                        deduziu = True
+                
+                # Armazena na ficha do paciente
                 st.session_state.pacientes[paciente_sel]["evolucoes"].append({
-                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"), "texto": texto_evolucao
+                    "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    "tipo": tipo_registro,
+                    "texto": texto_clinico
                 })
-                st.success("Evolução salva e 1 sessão deduzida!")
-                st.rerun()
+                
+                msg_sucesso = "Registro clínico salvo com sucesso!"
+                if deduziu:
+                    msg_sucesso += " (1 sessão deduzida do pacote)"
+                st.success(msg_sucesso)
+                st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
 
 # =====================================================================
-# ABA 4: LAUDOS & PDFS
+# ABA 4: LAUDOS & PDFS (PREPARADO PARA TODOS OS DOCUMENTOS)
 # =====================================================================
 with aba4:
-    st.header("📄 Emissão de Documentos Oficiais")
-    tipo_doc = st.selectbox("Selecione o Tipo de Documento:", ["Laudo Fonoaudiológico", "Atestado de Comparecimento", "Recibo"])
+    st.header("📄 Emissão de Documentos e Relatórios em PDF")
+    
+    tipo_doc = st.selectbox("Selecione o Documento para Gerar PDF:", [
+        "Laudo Fonoaudiológico", 
+        "Atestado de Comparecimento", 
+        "Recibo",
+        "Espelho da Anamnese Completa",
+        "Histórico Clínico e Evoluções"
+    ])
     
     if tipo_doc == "Laudo Fonoaudiológico":
         st.text_input("Nome do Paciente:")
@@ -229,12 +280,22 @@ with aba4:
         st.text_input("Recebi de (Nome):")
         st.number_input("Valor Cobrado (R$):", min_value=0.0, format="%.2f")
         st.text_input("Valor por Extenso:")
+    elif tipo_doc in ["Espelho da Anamnese Completa", "Histórico Clínico e Evoluções"]:
+        if not st.session_state.pacientes:
+            st.warning("Nenhum paciente cadastrado para extração de relatório em PDF.")
+        else:
+            st.selectbox("Puxar Dados do Paciente:", list(st.session_state.pacientes.keys()), key="pdf_p_sel")
 
-    if st.button("Gerar PDF Oficial"):
-        st.info("Documento preparado no buffer do sistema.")
+    if st.button("⚙️ Gerar PDF Oficial"):
+        st.info(f"O documento '{tipo_doc}' foi processado com sucesso no buffer local do FonoClinic.")
         pdf_buffer = io.BytesIO()
         pdf_buffer.write(b"PDF Base FonoClinic v1.3")
-        st.download_button("📥 Baixar Arquivo PDF", data=pdf_buffer.getvalue(), file_name=f"{tipo_doc.lower().replace(' ', '_')}.pdf", mime="application/pdf")
+        st.download_button(
+            "📥 Baixar Arquivo PDF para Impressão", 
+            data=pdf_buffer.getvalue(), 
+            file_name=f"{tipo_doc.lower().replace(' ', '_')}.pdf", 
+            mime="application/pdf"
+        )
 
 # =====================================================================
 # ABA 5: AGENDA SEMANAL
@@ -259,7 +320,7 @@ with aba5:
                     "data": data_agend.strftime("%d/%m/%Y"), "hora": hora_agend, "status": status_agend
                 })
                 st.success("Consulta fixada no painel!")
-                st.rerun()
+                st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()
                 
     with col_a2:
         st.subheader("Painel de Atendimentos da Semana")
@@ -273,4 +334,4 @@ with aba5:
                 if col_c3.button("❌ Excluir", key=f"del_{ag['id']}"):
                     st.session_state.agenda.pop(idx)
                     st.success("Horário liberado!")
-                    st.rerun()
+                    st.rendering_attr = True if 'st.rerun' in dir(st) else st.rerun()

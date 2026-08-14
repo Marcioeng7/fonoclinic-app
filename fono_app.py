@@ -12,7 +12,12 @@ st.set_page_config(page_title="FonoClinic v1.3", page_icon="🩺", layout="wide"
 # =====================================================================
 @st.cache_resource
 def conectar_banco_dados():
-    info_chave = st.secrets["gcp_service_account"]
+    # Puxa as credenciais TOML salvas com segurança no Secrets do Streamlit Cloud
+    info_chave = dict(st.secrets["gcp_service_account"])
+    
+    # Linha mágica inserida: remove erros de criptografia do arquivo PEM/JSON
+    info_chave["private_key"] = info_chave["private_key"].replace("\\n", "\n")
+    
     escopos = [
         "https://googleapis.com",
         "https://googleapis.com"
@@ -269,6 +274,7 @@ with aba3:
                 st.warning(f"O paciente '{nome_paciente}' já possui cadastro no FonoClinic_DB.")
             else:
                 dt_nasc_str = data_nasc.strftime("%d/%m/%Y") if data_nasc else ""
+                # Linha corrigida de forma definitiva: 'sexo' com 'o' no final
                 aba_sheets_id.append_row([nome_paciente, dt_nasc_str, sexo, apelido, naturalidade, endereco, emergencia, estuda, turma, turno, responsavel, profissao, telefone, 0])
                 st.success(f"Ficha cadastral de '{nome_paciente}' salva para sempre no Google Sheets!")
                 st.rerun()

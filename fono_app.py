@@ -5,7 +5,7 @@ import io
 # Configuração da página - Layout amplo para o celular e computador
 st.set_page_config(page_title="FonoClinic v1.3 - Demo", page_icon="🩺", layout="wide")
 
-st.title("🩺 FonoClinic v1.3 — Painel de Demonstração Local")
+st.title("🩺 FonoClinic v1.3 — Painel de Demonstração")
 st.info("💡 Modo de visualização ativo: O banco de dados em nuvem foi isolado temporariamente para testes visuais.")
 
 # --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
@@ -122,78 +122,168 @@ with aba2:
         st.success(f"Sucesso! Agendamento simulado criado para {p_nome} às {hora_agend}!")
 
 # =====================================================================
-# ABA 3: ADMITIR PACIENTE (CADASTRO DEMO)
+# ABA 3: ADMITIR PACIENTE (CADASTRO DEMO CONFORME PDF)
 # =====================================================================
 with aba3:
-    st.header("👤 Admitir Novo Paciente (Demonstração)")
-    nome_paciente = st.text_input("Nome Completo do Paciente (Obrigatório)", key="cad_nome_admissao").strip()
+    st.header("👤 Admitir Novo Paciente (Ficha Cadastral)")
+    st.write("Dados iniciais de identificação do paciente.")
+    
+    nome_paciente = st.text_input("Nome Completo:", key="cad_nome_admissao").strip()
     
     col1, col2, col3 = st.columns(3)
-    data_nasc = col1.date_input("Data de Nascimento", value=None, min_value=date(2000, 1, 1), key="cad_data_nasc")
-    sexo = col2.selectbox("Sexo", ["", "Masculino", "Feminino", "Outro"], key="cad_sexo")
-    apelido = col3.text_input("Apelido", key="cad_apelido")
+    data_nasc = col1.date_input("Data de Nascimento:", value=None, min_value=date(2000, 1, 1), key="cad_data_nasc")
+    sexo = col2.text_input("Sexo:", key="cad_sexo")
+    apelido = col3.text_input("Apelido:", key="cad_apelido")
     
     col4, col5, col6 = st.columns(3)
-    naturalidade = col4.text_input("Naturalidade", key="cad_naturalidade")
-    endereco = col5.text_input("Endereço Completo", key="cad_endereco")
-    emergencia = col6.text_input("Em caso de emergência ligar para:", key="cad_emergencia")
+    naturalidade = col4.text_input("Naturalidade:", key="cad_naturalidade")
+    endereco_comp = col5.text_input("Endereço Completo (Rua, Nº, Bairro, Cidade/UF):", key="cad_endereco")
+    cep_paciente = col6.text_input("CEP:", key="cad_cep")
+    
+    emergencia = st.text_input("Em caso de emergência ligar para:", key="cad_emergencia")
     
     col7, col8, col9 = st.columns(3)
     estuda = col7.selectbox("Estuda?", ["", "Sim", "Não"], key="cad_estuda")
-    turma = col8.text_input("Turma", key="cad_turma") if estuda == "Sim" else ""
-    turno = col9.selectbox("Turno", ["", "Manhã", "Tarde", "Integral"], key="cad_turno") if estuda == "Sim" else ""
+    turma = col8.text_input("Turma:", key="cad_turma") if estuda == "Sim" else ""
+    turno = col9.selectbox("Turno:", ["", "Manhã", "Tarde", "Integral"], key="cad_turno") if estuda == "Sim" else ""
     
-    col10, col11, col12 = st.columns(3)
-    responsavel = col10.text_input("Nome do Responsável Legal", key="cad_responsavel")
-    profissao = col11.text_input("Profissão do Responsável", key="cad_profissao")
-    telefone = col12.text_input("Telefone de Contato", key="cad_telefone")
+    st.markdown("---")
+    st.subheader("👪 Dados dos Responsáveis")
+    responsavel = st.text_input("Nome da Mãe/Pai/Responsável legal:", key="cad_responsavel")
+    
+    col10, col11 = st.columns(2)
+    data_nasc_resp = col10.text_input("Data de Nasc. do Responsável:", key="cad_data_nasc_resp")
+    telefone = col11.text_input("Telefone de Contato:", key="cad_telefone")
+    profissao = st.text_input("Profissão do Responsável:", key="cad_profissao")
 
     if st.button("💾 Salvar Admissão do Paciente", key="btn_salvar_cadastro"):
         if not nome_paciente:
             st.error("Erro: O nome do paciente é obrigatório.")
         else:
-            st.success(f"Simulação: Ficha cadastral de '{nome_paciente}' validada na interface!")
+            st.success(f"Ficha cadastral de '{nome_paciente}' validada com sucesso na tela!")
 
 # =====================================================================
-# ABA 4: PREENCHER ANAMNESE CLINICA (BRINQUEDO COMPLETO)
+# ABA 4: PREENCHER ANAMNESE CLINICA (FOTOCOPIA DO PDF + ADICIONAIS TOP)
 # =====================================================================
 with aba4:
-    st.header("📝 Avaliação Inicial e Anamnese (Demonstração)")
+    st.header("📝 Avaliação Inicial e Anamnese Completa")
+    st.write("Formulário clínico estruturado (Modelo Impresso + Marcadores Clínicos Avançados).")
+    
     pac_cadastrados = ["Arthur Silva (Teste)", "Beatriz Souza (Teste)", "Carlos Eduardo (Teste)"]
-
     paciente_anamnese = st.selectbox("Selecione o Paciente para Vincular a Anamnese:", pac_cadastrados, key="sel_pac_anamnese")
     
-    with st.expander("📋 Queixa Principal e Histórico Clínico", expanded=True):
-        queixa = st.text_area("Queixa Principal (O que te trouxe aqui?)")
+    # --- BLOCO 1: QUEIXA E SAÚDE GERAL ---
+    with st.expander("📋 1. Queixa Principal e Histórico Clínico", expanded=True):
+        queixa = st.text_area("Queixa Principal (O que te trouxe aqui?):")
+        
         pergunta_sim_nao("Faz terapia com outros profissionais?", "ter_outros", True, "Quais?")
-        diagnostico_txt = st.text_input("Tem diagnóstico?")
-        pergunta_sim_nao("Alérgico:", "alergia", True, "Quais?")
-        pergunta_sim_nao("Toma medicação:", "medicao", True, "Quais?")
-        com_quem_passa = st.text_input("Com quem passa mais tempo:")
-        pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes")
+        diagnostico_txt = st.text_input("Tem diagnóstico?:")
+        
+        pergunta_sim_nao("Alérgico:", "alergia", True, "Especifique:")
+        pergunta_sim_nao("Toma medicação:", "medicao", True, "Quais e Dosagem?")
+        
+        com_quem_passa = st.text_input("Com quem passa mais tempo?:")
+        pergunta_sim_nao("Pratica ou gosta de esportes:", "esportes", True, "Quais?")
 
-    with st.expander("🦶 Marcos de Desenvolvimento e Rotina de Telas", expanded=False):
-        col_m1, col_m2 = st.columns(2)
-        idade_sentou = col_m1.text_input("Com qual idade sentou?")
-        idade_andou = col_m2.text_input("Com qual idade andou?")
+    # --- BLOCO ADICIONADO: TRIAGEM NEONATAL E EXAMES CLÍNICOS ---
+    with st.expander("🧬 2. Triagem Neonatal, Exames e Histórico de Saúde Avançado", expanded=False):
+        st.write("**Resultados das Triagens Neonatais (Testes Iniciais):**")
+        t_pezinho = st.selectbox("Teste do Pezinho:", ["", "Normal / Sem alterações", "Alterado", "Não realizado / Não sabe"])
+        if t_pezinho == "Alterado": st.text_input("Especifique a alteração do Teste do Pezinho:")
+            
+        t_orelhinha = st.selectbox("Teste da Orelhinha (Emissões Otoacústicas):", ["", "PASSOU (Normal)", "FALHOU / Alterado", "Não realizado"])
+        t_linguinha = st.selectbox("Teste da Linguinha (Frênulo Lingual):", ["", "Normal (Sem restrição)", "Alterado (Língua presa / Indicou pique)", "Não realizado"])
+        t_olhinho = st.selectbox("Teste do Olhinho:", ["", "Normal", "Alterado", "Não realizado"])
+        
         st.markdown("---")
-        idade_primeiras_palavras = st.text_input("Com qual idade falou as primeiras palavras?")
-        como_se_comunica_atualmente = st.text_area("Como se comunica atualmente?")
-        st.markdown("---")
-        tempo_telas = st.selectbox("Tempo diário estimado de exposição a telas:", ["", "Não utiliza", "Até 1 hora por dia", "De 1 a 3 horas por dia", "De 3 a 5 horas por dia", "Mais de 5 horas por dia"])
-        detalhe_telas = st.text_input("Quais conteúdos costuma assistir?")
+        st.write("**Exames Clínicos Complementares Externos:**")
+        pergunta_sim_nao("Já realizou Exame de Audiometria (Teste de Audição)?", "ex_audiometria", True, "Resultado/Parecer do exame:")
+        pergunta_sim_nao("Já realizou Processamento Auditivo Central (PAC)?", "ex_pac", True, "Resultado/Parecer do exame:")
+        pergunta_sim_nao("Já realizou BERA / PEATE?", "ex_bera", True, "Resultado/Parecer do exame:")
+        pergunta_sim_nao("Possui algum outro exame de imagem ou genético? (Ex: EEG, Ressonância)", "ex_outros_img", True, "Quais exames e resultados?")
 
-    with st.expander("🚽 Autonomia, Alimentação e Desenvolvimento", expanded=False):
-        pergunta_sim_nao("Usa Fralda?", "fralda")
-        pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "banheiro")
-        amamentacao = st.text_input("Ele(a) mamou peito ou fórmula?")
-        mastigacao_degluticao = st.text_area("Descreva a mastigação e deglutição:")
+    # --- BLOCO 3: MARCOS DE INTERAÇÃO, FALA E COGNIÇÃO (PÁG 1 DO PDF) ---
+    with st.expander("🧠 3. Comunicação, Interação e Cognição", expanded=False):
+        pergunta_sim_nao("Verbal:", "verbal_pdf", True, "Detalhes sobre a fala")
+        pergunta_sim_nao("Interage bem:", "interage_pdf", True, "Como interage?")
+        pergunta_sim_nao("Olha no olho ao ser chamado:", "olha_olho_pdf", True, "Observações")
+        pergunta_sim_nao("Atende a comandos (Ex: 'pega isso aqui e coloca na mesa'):", "atende_comandos_pdf", True, "Detalhes")
+        
+        st.markdown("---")
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            pergunta_sim_nao("Sabe o seu nome:", "sabe_nome")
+            pergunta_sim_nao("Sabe o nome dos responsáveis:", "sabe_nome_resp")
+            pergunta_sim_nao("Sabe as vogais:", "sabe_vogais")
+        with col_c2:
+            pergunta_sim_nao("Sabe as cores:", "sabe_cores")
+            pergunta_sim_nao("Sabe o alfabeto:", "sabe_alfabeto")
+            pergunta_sim_nao("Gosta de música:", "gosta_musica")
+            
+        st.markdown("---")
+        st.write("**Sinais e Comportamentos Específicos:**")
+        pergunta_sim_nao("Estereotipia:", "estereotipia_pdf", True, "Descreva os movimentos")
+        pergunta_sim_nao("Ecolalia:", "ecolalia_pdf", True, "Descreva a repetição")
+        pergunta_sim_nao("Fixação em algo:", "fixacao_pdf", True, "Descreva o objeto/assunto de interesse")
+        pergunta_sim_nao("Dificuldade motora:", "dif_motora_pdf", True, "Detalhes da dificuldade")
+
+    # --- BLOCO 4: DESENVOLVIMENTO COGNITIVO E EXPRESSÃO (PÁG 2 DO PDF) ---
+    with st.expander("🗣️ 4. Linguagem Avançada e Habilidades Educacionais", expanded=False):
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            pergunta_sim_nao("Fala inglês:", "fala_ingles")
+            pergunta_sim_nao("Nomeia as cores?", "nomeia_cores")
+            pergunta_sim_nao("Nomeia objetos?", "nomeia_objetos", True, "Quais ou Como?")
+        with col_l2:
+            pergunta_sim_nao("Identifica Figuras?", "identifica_figuras", True, "Quais?")
+            pergunta_sim_nao("Nomeia animais?", "nomeia_animais")
+            pergunta_sim_nao("Sabe as emoções?", "sabe_emocoes", True, "Quais reconhece?")
+            
+        pergunta_sim_nao("Sabe se expressar?", "sabe_expressar", True, "Como se expressa?")
+        
+        st.markdown("---")
+        pergunta_sim_nao("Assiste desenho animado?", "assiste_desenho", True, "Quais conteúdos?")
+
+    # --- BLOCO 5: COMPORTAMENTO, SENSORIAL E AUTONOMIA (PÁG 2 DO PDF) ---
+    with st.expander("🎭 5. Comportamento, Sono e Autonomia Diária", expanded=False):
+        col_cp1, col_cp2 = st.columns(2)
+        with col_cp1:
+            pergunta_sim_nao("Seletividade alimentar:", "seletividade_pdf")
+            pergunta_sim_nao("Dorme bem:", "dorme_bem_pdf")
+        with col_cp2:
+            pergunta_sim_nao("Usa Fralda?", "usa_fralda_pdf")
+            pergunta_sim_nao("Sabe pedir para ir ao banheiro?", "pedir_banheiro_pdf")
+            pergunta_sim_nao("Se veste sozinho?", "veste_sozinho_pdf")
+            
+        st.markdown("---")
+        pergunta_sim_nao("Apresenta Auto-agressão:", "auto_agressao", True, "Descreva como acontece")
+        pergunta_sim_nao("Agressivo com os outros:", "agressivo_outros", True, "Em quais momentos?")
+        pergunta_sim_nao("Gosta de animais?", "gosta_animais", True, "Quais?")
+
+    # --- BLOCO 6: HISTÓRICO MATERNO E ROTINA DE BRINQUEDO (PÁG 2 DO PDF) ---
+    with st.expander("🍼 6. Histórico de Parto, Amamentação e Preferências", expanded=False):
+        col_p1, col_p2 = st.columns(2)
+        tipo_parto = col_p1.selectbox("Parto:", ["", "Cesárea", "Normal"])
+        intercorrencias_parto = col_p2.text_input("Alguma intercorrência no parto?")
+        
+        st.markdown("---")
+        perfil_criante = st.multiselect(
+            "Ele(a) é:", 
+            ["Agitado", "Tranquilo", "Inseguro", "Impaciente"]
+        )
+        
+        mamou_leite = st.text_input("Ele(a) mamou peito ou formula?:")
+        pergunta_sim_nao("Usou e ainda usa chupeta, dedo ou mamadeira?", "bicos_habito", True, "Especifique qual e se ainda usa")
+        
+        st.markdown("---")
+        gosta_brincar = st.text_area("O que ele(a) gosta de brincar?:")
+        mais_gosta_fazer = st.text_area("O que mais gosta de fazer?:")
 
     st.markdown("---")
-    realizada_com = st.text_input("Anamnese realizada com (Grau de parentesco):")
+    realizada_com = st.text_input("Anamnese realizada com (Nome completo do informante):")
 
-    if st.button("💾 Salvar Anamnese Expandida no Prontuário", key="btn_salvar_anamnese"):
-        st.success(f"Simulação: Anamnese clínica de '{paciente_anamnese}' processada com sucesso!")
+    if st.button("💾 Salvar Anamnese Estruturada no Prontuário", key="btn_salvar_anamnese"):
+        st.success(f"Sucesso! A anamnese de '{paciente_anamnese}' foi processada com o modelo oficial + marcadores de triagem neonatal e exames.")
 
 # =====================================================================
 # ABA 5: CENTRAL DO PACIENTE (PASTA DIGITAL DEMO)
@@ -204,7 +294,6 @@ with aba5:
 
     paciente_pasta = st.selectbox("🗄️ Abrir Pasta do Paciente:", pacientes_lista_pasta, key="sel_paciente_pasta")
     
-    # Criando dados fictícios fixos para a Dra. Michelle ver como as informações são organizadas
     id_data = {
         "nome": paciente_pasta,
         "data_nasc": "15/04/2018",
@@ -287,7 +376,7 @@ with aba5:
         st.subheader("🖨️ Exportação Rápida do Prontuário")
         st.write("Gere e baixe a ficha completa simulada com apenas um clique.")
         if st.button("⚙️ Compilar Prontuário Completo (PDF)", key="btn_pdf_direto_pasta"):
-            st.info("Prontuário de teste compilado com sucesso!")
+            st.info("Prontuário de teste compiled com sucesso!")
             pdf_buf = io.BytesIO()
             pdf_buf.write(b"Prontuario Completo FonoClinic Demo")
             st.download_button("📥 Baixar PDF do Prontuário", data=pdf_buf.getvalue(), file_name=f"prontuario_{paciente_pasta.lower().replace(' ', '_')}.pdf", mime="application/pdf")

@@ -2,11 +2,36 @@ import streamlit as st
 from datetime import date, datetime, timedelta
 import io
 
-# Configuração da página - Layout amplo para celular e computador
-st.set_page_config(page_title="FonoClinic v1.5 - Final", page_icon="🩺", layout="wide")
+# Configuração da página - Layout amplo e responsivo para celular e computador
+st.set_page_config(page_title="FonoClinic v1.6 - Premium", page_icon="🩺", layout="wide")
 
-st.title("🩺 FonoClinic v1.5 — Painel de Demonstração Avançado")
-st.info("💡 Modo de visualização ativo: Banco de dados simulado localmente para validação clínica.")
+# Estilização CSS customizada para deixar o visual chique, moderno e com fontes limpas
+st.markdown("""
+    <style>
+    .reportview-container { background: #f8f9fa; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
+    .stTabs [data-baseweb="tab"] {
+        background-color: #f1f3f5;
+        border-radius: 4px 4px 0px 0px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #495057;
+    }
+    .stTabs [aria-selected="true"] { 
+        background-color: #ffffff !important; 
+        color: #007bff !important;
+        border-bottom: 2px solid #007bff !important;
+    }
+    div[data-testid="stExpander"] {
+        border: 1px solid #e9ecef !important;
+        box-shadow: 0px 2px 4px rgba(0,0,0,0.02) !important;
+        border-radius: 6px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🩺 FonoClinic v1.6 — Sistema de Gestão e Prontuário")
+st.info("💡 Modo de visualização ativo: Interface clínica premium com simulador de dados local.")
 
 # --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
 horarios_disponiveis = []
@@ -27,395 +52,440 @@ def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes
             detalhe = st.text_input(f"{label_adicional}", key=f"{key}_det")
     return resposta, detalhe
 
-# AS 7 ABAS OFICIAIS DO SOFTWARE REORDENADAS POR USABILIDADE CLÍNICA
-aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
-    "📋 Painel de Atendimento",
-    "📅 Marcar Horário",
-    "👤 Admitir Paciente (Cadastro)",
-    "📝 Triagem Inicial",
-    "🗂️ Central do Paciente (Prontuário)",
-    "📄 Laudos & PDFs",
-    "📚 Anamnese Completa (Robusta)"
+# AS 6 ABAS OFICIAIS DO SOFTWARE REORDENADAS POR FLUXO CRONOLÓGICO CLÍNICO
+aba1, aba2, aba3, aba4, aba5, aba6 = st.tabs([
+    "📋 Painel de Atendimento",         # 1. Agenda do dia
+    "📅 Marcar Horário",                # 2. Agendar novas consultas
+    "👤 Admitir Paciente (Cadastro)",     # 3. Cadastro completo com endereço/pais
+    "📝 Triagem Rápida",                # 4. Primeira queixa rápida
+    "📚 Anamnese Completa (Robusta)",    # 5. Todo o questionário do seu PDF integrado!
+    "🗂️ Central do Paciente (Prontuário)" # 6. Hub Unificado com Evoluções, Histórico e Laudos
 ])
 
 # =====================================================================
-# ABA 1: PAINEL DE ATENDIMENTO (MODO DEMO VISUAL)
+# ABA 1: PAINEL DE ATENDIMENTO DIÁRIO (VISUAL REFORMULADO)
 # =====================================================================
 with aba1:
-    st.header("📋 Painel de Atendimento Diário (Demonstração)")
-    st.write("Visualização da grade de compromissos unificada da clínica.")
+    st.header("📋 Painel de Atendimento Diário")
+    st.write("Visualização unificada e limpa da grade de compromissos para controle rápido.")
 
     tipo_visao = st.radio(
         "Filtro de Escopo Temporal:",
-        ["Ver por Dia", "Ver por Semana", "Ver por Mês", "Ver por Ano"],
+        ["Ver por Dia", "Ver por Semana", "Ver por Mês"],
         horizontal=True, key="radio_tipo_visao"
     )
     data_base = st.date_input("Data de Referência:", value=date.today(), key="painel_data_ref")
     
-    # Criando agendamentos de teste apenas para ver o visual na tela
+    # Massa de dados mockados com as novas tags de segmentação clínica
     dados_agenda_sheets = [
-        {"id_linha": "1", "paciente": "Arthur Silva (Infantil - TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios"},
-        {"id_linha": "2", "paciente": "Beatriz Souza (Infantil - Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo"},
-        {"id_linha": "3", "paciente": "Carlos Eduardo (Adulto - Pós-AVC)", "data": data_base.strftime("%d/%m/%Y"), "hora": "14:00", "status": "Faltou", "tipo_consulta": "Anamnese", "obs": "Mãe avisou que ia atrasar"}
+        {"id_linha": "1", "paciente": "Arthur Silva", "perfil": "👶 Infantil (TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios lúdicos"},
+        {"id_linha": "2", "paciente": "Beatriz Souza", "perfil": "👶 Infantil (Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo central"},
+        {"id_linha": "3", "paciente": "Carlos Eduardo", "perfil": "🧓 Adulto (Pós-AVC)", "data": data_base.strftime("%d/%m/%Y"), "hora": "14:00", "status": "Faltou", "tipo_consulta": "Anamnese Clínica", "obs": "Acompanhante solicitou encaixe na recepção"}
     ]
 
-    st.subheader(f"📅 Consultas Simuladas para o Período Base")
+    st.subheader(f"📅 Consultas e Atendimentos Agendados")
     
-    st.write("🖨️ **Exportação Rápida da Grade:**")
-    if st.button("⚙️ Compilar Grade de Compromissos (PDF)", key="btn_pdf_agenda_dia"):
-        st.info("Grade de compromissos compilada com sucesso no simulador!")
+    # Área de exportação com visual limpo
+    col_exp1, col_exp2 = st.columns([1, 4])
+    with col_exp1:
+        if st.button("⚙️ Compilar Grade (PDF)", key="btn_pdf_agenda_dia"):
+            st.toast("Grade compilada no simulador com sucesso!", icon="⚙️")
+    with col_exp2:
         pdf_agenda_buf = io.BytesIO()
-        pdf_agenda_buf.write(b"Grade de Atendimentos FonoClinic Demo")
-        st.download_button("📥 Baixar PDF da Grade", data=pdf_agenda_buf.getvalue(), file_name="agenda_demonstracao.pdf", mime="application/pdf")
+        pdf_agenda_buf.write(b"Grade de Atendimentos FonoClinic Premium")
+        st.download_button("📥 Baixar PDF da Grade", data=pdf_agenda_buf.getvalue(), file_name="agenda_diaria.pdf", mime="application/pdf")
+        
     st.markdown("---")
 
+    # Renderização dos cards clínicos elegantes
     for ag in dados_agenda_sheets:
         with st.container(border=True):
-            col_c1, col_c2, col_c3 = st.columns(3)
+            col_c1, col_c2, col_c3 = st.columns([2, 1, 1])
             with col_c1:
-                st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')}")
-                st.caption(f"📅 Data: {ag.get('data', '')} | Tipo: {ag.get('tipo_consulta', 'Atendimento')}")
-                if ag.get("obs", ""): st.info(f"📝 Obs: {ag.get('obs', '')}")
+                st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')} <small style='background-color:#e7f5ff; color:#228be6; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold;'>{ag.get('perfil', '')}</small>", unsafe_allow_html=True)
+                st.caption(f"📅 Data: {ag.get('data', '')} | Tipo: **{ag.get('tipo_consulta', 'Atendimento')}**")
+                if ag.get("obs", ""): 
+                    st.info(f"📝 Nota de Recepção: {ag.get('obs', '')}")
             with col_c2:
                 status_atual = ag.get("status", "Agendado")
-                if status_atual == "Agendado": st.warning(f"🔹 Status: {status_atual}")
-                elif status_atual == "Atendido": st.success(f"✅ Status: {status_atual}")
-                else: st.error(f"❌ Status: {status_atual}")
+                if status_atual == "Agendado": 
+                    st.warning(f"🔹 Status: {status_atual}")
+                elif status_atual == "Atendido": 
+                    st.success(f"✅ Status: {status_atual}")
+                else: 
+                    st.error(f"❌ Status: {status_atual}")
             with col_c3:
                 if status_atual == "Agendado":
-                    col_b1, col_b2 = st.columns(2)
-                    if col_b1.button("✅ Concluir Atendimento", key=f"concluir_{ag.get('id_linha')}"):
-                        st.success("Simulação: Atendimento concluído visualmente!")
-                    if col_b2.button("🚨 Registrar Falta", key=f"falta_{ag.get('id_linha')}"):
-                        st.error("Simulação: Falta registrada visualmente!")
+                    if st.button("✅ Concluir Sessão", key=f"concluir_{ag.get('id_linha')}", use_container_width=True):
+                        st.success("Simulação: Atendimento gravado!")
+                    if st.button("🚨 Registrar Falta", key=f"falta_{ag.get('id_linha')}", use_container_width=True):
+                        st.error("Simulação: Falta computada!")
                 else:
-                    if st.button("🗑️ Desmarcar Horário", key=f"excluir_{ag.get('id_linha')}"):
-                        st.info("Simulação: Horário liberado na grade.")
+                    if st.button("🗑️ Liberar Grade", key=f"excluir_{ag.get('id_linha')}", use_container_width=True):
+                        st.info("Simulação: Horário disponibilizado.")
 
 # =====================================================================
-# ABA 2: MARCAR HORÁRIO (MODO DEMO VISUAL)
+# ABA 2: CONFIGURAÇÃO E MARCAÇÃO DE NOVOS HORÁRIOS
 # =====================================================================
 with aba2:
-    st.header("📅 Agendamento e Controle de Horários Vagos")
-    st.write("Demonstração da tela de configuração de horários individuais ou em grupo.")
+    st.header("📅 Agendamento e Gestão de Vagas")
+    st.write("Tela moderna para configuração de grades, marcações individuais ou repetições recorrentes.")
     
-    lista_pacientes_sheets = ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"]
+    lista_pacientes_sheets = ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"]
 
-    col_ag1, col_ag2 = st.columns(2)
-    with col_ag1:
-        p_nome = st.selectbox("Selecione o Paciente para Agenda:", lista_pacientes_sheets, key="agenda_p_sel")
-        data_inicio = st.date_input("Data da Consulta (ou Início):", value=date.today(), key="agenda_data_ini")
-        hora_agend = st.selectbox("Selecione o Horário Desejado:", horarios_disponiveis, key="agenda_hora_sel")
-        tipo_consulta = st.selectbox("Tipo de Consulta:", ["Atendimento de Rotina", "Primeira Consulta / Triagem", "Anamnese", "🚫 Bloqueio de Agenda / Compromisso"])
+    with st.container(border=True):
+        col_ag1, col_ag2 = st.columns(2)
+        with col_ag1:
+            p_nome = st.selectbox("Selecione o Paciente para Agenda:", lista_pacientes_sheets, key="agenda_p_sel")
+            data_inicio = st.date_input("Data do Atendimento:", value=date.today(), key="agenda_data_ini")
+            hora_agend = st.selectbox("Selecione o Horário Disponível:", horarios_disponiveis, key="agenda_hora_sel")
+            tipo_consulta = st.selectbox("Modalidade Clínica:", ["Atendimento de Rotina", "Primeira Consulta / Triagem", "Anamnese Completa", "🚫 Bloqueio Clínico de Agenda"])
 
-    with col_ag2:
-        recorrencia = st.selectbox("Configurar Repetição / Recorrência:", ["Consulta Única", "Semanal (Todas as semanas)", "Mensal (Uma vez por mês)", "Anual (Uma vez por ano)"])
-        qtd_repeticoes = st.number_input("Quantidade de repetições em lote:", min_value=1, value=1, step=1)
-        obs_consulta = st.text_input("Observação Rápida para o dia:", key="agenda_obs")
-        atendimento_grupo = st.checkbox("⚙️ Permitir Atendimento em Grupo neste horário", value=False)
+        with col_ag2:
+            recorrencia = st.selectbox("Configuração de Recorrência:", ["Consulta Única", "Semanal (Fixo)", "Mensal (Fixo)"])
+            qtd_repeticoes = st.number_input("Número de Sessões em Lote (Pacote):", min_value=1, value=1, step=1)
+            obs_consulta = st.text_input("Observação para a Guia ou Prontuário:", key="agenda_obs")
+            atendimento_grupo = st.checkbox("⚙️ Configurar como Atendimento Multidisciplinar / Grupo", value=False)
 
-    st.markdown("---")
-    if st.button("🔍 Consultar Grade de Horários Vagos nesta Data", key="btn_consultar_vagos"):
-        st.write(f"📂 **Simulação: Analisando lacunas vazias para o dia {data_inicio.strftime('%d/%m/%Y')}...**")
-        st.write("Disponíveis para teste: " + ", ".join(horarios_disponiveis[5:15]) + "...")
-
-    if st.button("🗓️ Confirmar Agendamento Clínico", key="btn_fixar_agenda"):
-        st.success(f"Sucesso! Agendamento simulado criado para {p_nome} às {hora_agend}!")
+        st.markdown("---")
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("🔍 Mapear Lacunas e Horários Vagos", use_container_width=True):
+                st.write(f"📂 **Análise do dia {data_inicio.strftime('%d/%m/%Y')}:** Horários sugeridos: " + ", ".join(horarios_disponiveis[8:14]))
+        with col_btn2:
+            if st.button("🗓️ Fixar e Confirmar Agendamento", key="btn_fixar_agenda", type="primary", use_container_width=True):
+                st.success(f"🎉 Sucesso! Compromisso agendado para {p_nome} às {hora_agend}!")
 
 # =====================================================================
-# ABA 3: ADMITIR PACIENTE (CADASTRO - MODO DEMO VISUAL ATUALIZADO)
+# ABA 3: ADMITIR PACIENTE (CADASTRO PREMIUM COM FILIAÇÃO E ENDEREÇO)
 # =====================================================================
 with aba3:
-    st.header("👤 Admitir Novo Paciente (Cadastro Inicial)")
-    st.write("Formulário completo de dados demográficos, filiação e localização do paciente.")
+    st.header("👤 Admissão e Cadastro de Novo Paciente")
+    st.write("Insira as informações cadastrais fundamentais. Os campos de endereço e filiação estão estruturados para fácil preenchimento.")
 
     with st.form("form_cadastro_paciente"):
-        st.subheader("1. Dados Pessoais e Filiação")
-        col_cad1, col_cad2 = st.columns(2)
-        with col_cad1:
-            cad_nome = st.text_input("Nome Completo do Paciente:", placeholder="Digite o nome sem abreviações", key="cad_nome")
-            cad_nasc = st.date_input("Data de Nascimento:", value=date(2015, 1, 1), key="cad_nasc")
-            cad_genero = st.selectbox("Gênero Biológico / Identidade:", ["", "Masculino", "Feminino", "Outro"], key="cad_genero")
-            cad_cpf = st.text_input("CPF do Paciente (ou Responsável):", placeholder="000.000.000-00", key="cad_cpf")
-        
-        with col_cad2:
-            cad_mae = st.text_input("Nome Completo da Mãe:", placeholder="Nome completo da mãe", key="cad_mae")
-            cad_pai = st.text_input("Nome Completo do Pai:", placeholder="Nome completo do pai", key="cad_pai")
-            cad_resp = st.text_input("Responsável Legal (se não forem os pais):", placeholder="Obrigatório para menores de idade", key="cad_resp")
-            cad_tel = st.text_input("Telefone / WhatsApp de Contato:", placeholder="(00) 00000-0000", key="cad_tel")
+        st.markdown("### 🧬 1. Dados Pessoais e Filiação")
+        with st.container(border=True):
+            col_cad1, col_cad2 = st.columns(2)
+            with col_cad1:
+                cad_nome = st.text_input("Nome Completo do Paciente:", placeholder="Sem abreviações")
+                cad_nasc = st.date_input("Data de Nascimento:", value=date(2015, 1, 1))
+                cad_genero = st.selectbox("Gênero Biológico / Identidade:", ["", "Masculino", "Feminino", "Outro"])
+                cad_cpf = st.text_input("CPF (Paciente ou Responsável):", placeholder="000.000.000-00")
+            
+            with col_cad2:
+                cad_mae = st.text_input("Nome Completo da Mãe:", placeholder="Nome da mãe")
+                cad_pai = st.text_input("Nome Completo do Pai:", placeholder="Nome do pai")
+                cad_resp = st.text_input("Responsável Legal / Cuidador:", placeholder="Se menor de idade ou dependente")
+                cad_tel = st.text_input("Telefone de Contato (WhatsApp):", placeholder="(00) 00000-0000")
+
+        st.markdown("### 📍 2. Endereço Residencial")
+        with st.container(border=True):
+            col_end1, col_end2, col_end3 = st.columns([3, 1, 1])
+            with col_end1:
+                cad_rua = st.text_input("Logradouro (Rua, Avenida, etc.):", placeholder="Ex: Rua das Flores")
+            with col_end2:
+                cad_num = st.text_input("Número:", placeholder="Ex: 123")
+            with col_end3:
+                cad_compl = st.text_input("Complemento:", placeholder="Ex: Ap 102")
+
+            col_end4, col_end5, col_end6 = st.columns([2, 2, 1])
+            with col_end4:
+                cad_bairro = st.text_input("Bairro:", placeholder="Ex: Copacabana")
+            with col_end5:
+                cad_cidade = st.text_input("Cidade:", placeholder="Ex: Rio de Janeiro")
+            with col_end6:
+                cad_uf = st.text_input("UF:", max_chars=2, placeholder="RJ")
+
+        st.markdown("### 📂 3. Informações Complementares")
+        with st.container(border=True):
+            cad_email = st.text_input("E-mail para Envio de Treinos/Laudos:", placeholder="exemplo@email.com")
+            cad_obs = st.text_area("Observações Administrativas Importantes:", placeholder="Restrições de horários, convênio, preferências de atendimento...")
 
         st.markdown("---")
-        st.subheader("2. Endereço Residencial")
-        col_end1, col_end2, col_end3 = st.columns(3)
-        with col_end1:
-            cad_rua = st.text_input("Logradouro (Rua, Avenida, etc.):", placeholder="Ex: Rua das Flores", key="cad_rua")
-        with col_end2:
-            cad_num = st.text_input("Número:", placeholder="Ex: 123", key="cad_num")
-        with col_end3:
-            cad_compl = st.text_input("Complemento:", placeholder="Ex: Ap 402", key="cad_compl")
-
-        col_end4, col_end5, col_end6 = st.columns(3)
-        with col_end4:
-            cad_bairro = st.text_input("Bairro:", placeholder="Ex: Centro", key="cad_bairro")
-        with col_end5:
-            cad_cidade = st.text_input("Cidade:", placeholder="Ex: Rio de Janeiro", key="cad_cidade")
-        with col_end6:
-            cad_uf = st.text_input("UF:", max_chars=2, placeholder="RJ", key="cad_uf")
-
-        st.markdown("---")
-        st.subheader("3. Informações Adicionais")
-        cad_email = st.text_input("E-mail para Notificações:", placeholder="exemplo@email.com", key="cad_email")
-        cad_obs = st.text_area("Observações Administrativas Importantes:", placeholder="Convênio, restrições de horários, etc.", key="cad_obs")
-
-        st.markdown("---")
-        btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão")
+        btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão", type="primary", use_container_width=True)
         if btn_salvar_cadastro:
             if cad_nome:
-                st.success(f"🎉 Sucesso! Registro de {cad_nome} com filiação e endereço simulado na base local.")
+                st.success(f"🎉 Registro de {cad_nome} salvo e estruturado localmente com sucesso!")
             else:
-                st.warning("⚠️ Por favor, insira pelo menos o nome do paciente para testar.")
+                st.warning("⚠️ Por favor, insira pelo menos o nome do paciente para testar a gravação.")
 
 # =====================================================================
-# ABA 4: PREENCHER ANAMNESE / TRIAGEM INICIAL (MODO DEMO VISUAL)
+# ABA 4: TRIAGEM RÁPIDA (PRIMEIRA QUEIXA E SINTOMAS INICIAIS)
 # =====================================================================
 with aba4:
-    st.header("📝 Questionário de Triagem Inicial Fonoaudiológica")
-    st.write("Coleta resumida e rápida do histórico e queixas clínicas imediatas.")
+    st.header("📝 Questionário de Triagem Inicial Rápida")
+    st.write("Foco na captação da queixa principal e histórico de saúde imediato durante a primeira entrevista.")
 
-    paciente_anamnese = st.selectbox("Selecionar Paciente para Vincular Triagem:", ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"], key="anamnese_p_sel")
+    paciente_triagem = st.selectbox(
+        "Selecione o Paciente para Vincular a Triagem:", 
+        ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], 
+        key="triagem_p_sel"
+    )
     
-    st.subheader("1. Queixa Principal e Histórico Inicial")
-    queixa_principal = st.text_area("Qual a queixa principal da família ou do paciente?", placeholder="Ex: Atraso na fala, troca de fonemas, dificuldade de mastigação...", key="tri_queixa")
-    historico_medico = st.text_area("Histórico médico relevante (Intervenções, diagnósticos prévios):", key="tri_historico")
+    with st.container(border=True):
+        st.subheader("🚨 Queixa Principal e Antecedentes Médicos")
+        tri_queixa = st.text_area("Qual a queixa principal trazida pela família ou paciente?", placeholder="Ex: Dificuldade de articulação, engasgos frequentes, atraso na fala...")
+        tri_historico = st.text_area("Histórico médico relevante (Intervenções anteriores, exames realizados, diagnósticos já laudados):")
 
-    st.subheader("2. Desenvolvimento Motor e de Linguagem")
-    resp_fala, det_fala = pergunta_sim_nao("Apresenta atraso no desenvolvimento da fala?", "anam_fala", info_adicional=True, label_adicional="Com quantos anos começou a falar?")
-    resp_compreende, det_compreende = pergunta_sim_nao("Compreende ordens verbais simples?", "anam_comp")
-    resp_andou, det_andou = pergunta_sim_nao("Apresentou atraso para andar?", "anam_andar", info_adicional=True, label_adicional="Idade com que andou:")
+    with st.container(border=True):
+        st.subheader("🗣️ Marcos Rápidos de Desenvolvimento Motor e Fala")
+        resp_fala, det_fala = pergunta_sim_nao("Apresenta atraso visível no desenvolvimento da fala?", "tri_fala", info_adicional=True, label_adicional="Idade em que iniciou as primeiras palavras:")
+        resp_compreende, det_compreende = pergunta_sim_nao("Compreende ordens e comandos verbais simples?", "tri_comp")
+        resp_andou, det_andou = pergunta_sim_nao("Apresentou atraso no desenvolvimento motor para andar?", "tri_andar", info_adicional=True, label_adicional="Idade com que andou sozinho(a):")
 
-    st.subheader("3. Aspectos Auditivos e Alimentares")
-    resp_aud, det_aud = pergunta_sim_nao("Dificuldade para ouvir ou atentar-se a sons?", "anam_aud")
-    resp_mast, det_mast = pergunta_sim_nao("Dificuldade ou recusa na mastigação/deglutição?", "anam_mast", info_adicional=True, label_adicional="Descreva os alimentos recusados:")
+    with st.container(border=True):
+        st.subheader("🍽️ Aspectos Sensoriais, Auditivos e Alimentares Básicos")
+        resp_aud, det_aud = pergunta_sim_nao("Demonstra dificuldade para ouvir ou falta de atenção a sons cotidianos?", "tri_aud")
+        resp_mast, det_mast = pergunta_sim_nao("Apresenta dificuldade ou recusa marcante na mastigação/deglutição?", "tri_mast", info_adicional=True, label_adicional="Descreva os alimentos ou texturas recusados:")
 
     st.markdown("---")
-    if st.button("💾 Gravar e Consolidar Triagem Inicial", key="btn_salvar_anamnese"):
-        st.success(f"✅ Triagem de {paciente_anamnese} consolidada com sucesso no simulador!")
+    if st.button("💾 Gravar e Consolidar Triagem Rápida", key="btn_salvar_triagem", type="primary", use_container_width=True):
+        st.success(f"✅ Triagem Inicial de {paciente_triagem} gravada com sucesso no simulador local!")
 
 # =====================================================================
-# ABA 5: CENTRAL DO PACIENTE (PRONTUÁRIO INTELIGENTE - INFANTIL & ADULTO)
+# ABA 5: ANAMNESE COMPLETA E ROBUSTA (PARTE 1 - HISTÓRICO DE SAÚDE E GERAL)
 # =====================================================================
 with aba5:
-    st.header("🗂️ Central do Paciente & Evolução Clínica")
-    st.write("Prontuário ágil adaptado para fluxos infantis (TEA/Atrasos) e adultos (Disfagia/Afasia).")
+    st.header("📚 Anamnese Clínica Completa Infanto-Juvenil")
+    st.write("Histórico clínico profundo e mapeamento de marcos cognitivos, comportamentais e pedagógicos.")
 
-    lista_pacientes_prontuario = ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"]
-    paciente_atual = st.selectbox("Selecione o Prontuário Ativo:", lista_pacientes_prontuario, key="prontuario_p_sel")
-    
-    # Sub-abas internas para organizar o fluxo clínico sem poluir a tela
-    sub_aba_infantil, sub_aba_adulto, sub_aba_midia = st.tabs([
-        "👶 Fluxo Infantil & PEI", 
-        "🧓 Fluxo Adulto/Idoso", 
-        "🎥 Anexos Multimídia & Treinos"
-    ])
-
-    # --- 1. FLUXO INFANTIL (Evolução por Tags e PEI) ---
-    with sub_aba_infantil:
-        st.subheader("🎯 Plano de Ensino Individualizado (PEI) & Metas")
-        
-        with st.expander("📊 Definir/Visualizar Metas do PEI (Trimestral)", expanded=True):
-            col_pei1, col_pei2 = st.columns(2)
-            with col_pei1:
-                st.markdown("**Meta 1 (Linguagem Expressiva):** Produzir fonemas /r/ intercalados.")
-                st.select_slider("Progresso Meta 1:", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Com Apoio", key="pei_m1")
-            with col_pei2:
-                st.markdown("**Meta 2 (Comportamental/Socioemocional):** Manter contato visual por 3s.")
-                st.select_slider("Progresso Meta 2:", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Em Introdução", key="pei_m2")
-
-        st.markdown("---")
-        st.subheader("⚡ Evolução Ágil por Cliques (Sem Digitação)")
-        st.caption("Marque o desempenho da criança durante a atividade lúdica:")
-        
-        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
-        if col_t1.button("🎯 Alvo Atingido", use_container_width=True, type="primary", key="btn_alvo"):
-            st.toast("Adicionado: Alvo atingido com sucesso!", icon="🎯")
-        if col_t2.button("👁️ Produção c/ Apoio Visual", use_container_width=True, key="btn_ap_visual"):
-            st.toast("Adicionado: Production correta com apoio visual", icon="👁️")
-        if col_t3.button("🔄 Produção c/ Apoio Verbal", use_container_width=True, key="btn_ap_verbal"):
-            st.toast("Adicionado: Produção com apoio verbal", icon="🔄")
-        if col_t4.button("⚠️ Recusa / Choro", use_container_width=True, key="btn_recusa"):
-            st.toast("Adicionado: Recusa da atividade", icon="⚠️")
-
-        col_ev1, col_ev2 = st.columns(2)
-        with col_ev1:
-            st.selectbox("Nível de Atenção/Engajamento:", ["Adequado", "Baixo", "Excelente"], key="sel_atencao")
-            st.multiselect("Recursos Lúdicos Utilizados:", ["Jogo de Tabuleiro", "Livro Infantil", "Brinquedo Simbólico", "Espelho", "Massa de Modelar"], key="multi_recursos")
-        with col_ev2:
-            st.selectbox("Conduta para próxima sessão:", ["Manter Conduta Condizente", "Aumentar Nível de Desafio", "Trocar Estímulo Visual", "Conversar com os Pais"], key="sel_conduta")
-            st.text_input("Nota rápida (opcional):", placeholder="Ex: Chorou no início, mas regulou.", key="txt_nota_rapida")
-
-        if st.button("💾 Consolidar Evolução Infantil", key="btn_salvar_ev_infantil"):
-            st.success(f"✅ Prontuário de {paciente_atual} atualizado no simulador!")
-
-    # --- 2. FLUXO ADULTO/IDOSO (Disfagia, Afasia e Voz) ---
-    with sub_aba_adulto:
-        st.subheader("📋 Triagem Estruturada para Adultos")
-        
-        with st.expander("👅 Motricidade Orofacial & Voz", expanded=False):
-            st.radio("Simetria Facial em Repouso:", ["Simétrico", "Assimetria Suave", "Assimetria Severa (Paralisia)"], horizontal=True, key="rad_simetria")
-            st.radio("Qualidade Vocal Predominante:", ["Adequada", "Soprosa", "Rouca/Aspera", "Trêmula (Neurológica)"], horizontal=True, key="rad_voz")
-            
-        with st.expander("🍽️ Gerenciamento de Risco para Disfagia (Deglutição)", expanded=True):
-            col_dis1, col_dis2 = st.columns(2)
-            with col_dis1:
-                st.checkbox("Sinais de Penetração/Aspiração (Tosse/Engasgo com Líquidos)", key="chk_tosse")
-                st.checkbox("Voz Molhada após Deglutição", key="chk_voz_molhada")
-            with col_dis2:
-                st.checkbox("Escape de Alimento por Lábios", key="chk_escape")
-                st.checkbox("Resíduo Alimentar em Cavidade Oral (Estase)", key="chk_estase")
-            st.select_slider("Consistência Segura Testada:", options=["Zero (Líquidos Finos)", "Nível 1 (Líquidos Pouco Espessos)", "Nível 4 (Pastoso)", "Nível 7 (Alimentos Sólidos)"], key="slide_consistencia")
-
-        with st.expander("🗣️ Avaliação de Linguagem (Afasia / Cognição)", expanded=False):
-            st.checkbox("Compreensão verbal preservada para ordens complexas", key="chk_compreensao")
-            st.checkbox("Presença de Anomia (Dificuldade de encontrar palavras)", key="chk_anomia")
-            st.checkbox("Presença de Parafasias (Troca de palavras/sons)", key="chk_parafasias")
-            
-        if st.button("💾 Consolidar Evolução Adulto", key="btn_salvar_ev_adulto"):
-            st.success(f"✅ Avaliação de {paciente_atual} gravada com sucesso!")
-
-    # --- 3. ANEXO MULTIMÍDIA E COMPARTILHAMENTO DE TREINOS ---
-    with sub_aba_midia:
-        st.subheader("🎥 Evidências Multimídia do Paciente")
-        st.caption("Suba áudios ou vídeos curtos para documentar o avanço fonológico e de fala.")
-        st.file_uploader("Selecionar Arquivo de Áudio ou Vídeo (.mp3, .wav, .mp4):", type=["mp3", "wav", "mp4"], key="uploader_midia")
-        
-        st.markdown("---")
-        st.subheader("📲 Compartilhamento de Exercícios Domiciliares")
-        st.write("Selecione o treino que o paciente ou cuidador deverá realizar em casa:")
-        
-        treino_opcao = st.selectbox("Escolha o Modelo de Treino:", [
-            "Exercício de Sopro e Vedamento Labial (Infantil)",
-            "Higiene Vocal e Hidratação das Pregas Vocais (Adulto)",
-            "Manobra de Deglutição Segura / Queixo para Baixo (Disfagia)",
-            "Treino de Nomeação de Figuras com Apoio Contextual (Afasia)"
-        ], key="sel_treino")
-        
-        link_simulado_exercicio = "https://fonoclinic-treinos.com"
-        texto_whatsapp = f"Olá! Segue o treino de Fonoaudiologia para fazer em casa:\n\n*Treino:* {treino_opcao}\n*Link:* {link_simulado_exercicio}"
-        
-        st.text_area("Mensagem Formatada para o WhatsApp:", value=texto_whatsapp, height=120, key="txt_whatsapp")
-        
-        phone_exemplo = "5500999999999"
-        link_zap = f"https://whatsapp.com{phone_exemplo}&text={io.BytesIO(texto_whatsapp.encode('utf-8')).getvalue().decode('utf-8')}"
-        st.page_link(link_zap, label="🚀 Enviar Treino Direto para o WhatsApp do Paciente", icon="💬")
-
-# =====================================================================
-# ABA 6: LAUDOS & EXPORTAÇÕES PDF (MODO DEMO VISUAL)
-# =====================================================================
-with aba6:
-    st.header("📄 Central de Emissão de Laudos, Relatórios & Declarações")
-    st.write("Ferramenta para compilar dados da anamnese e do prontuário em arquivos oficiais.")
-
-    paciente_laudo = st.selectbox("Selecione o Paciente para Emitir Documento:", ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"], key="laudos_p_sel")
-    tipo_documento = st.selectbox("Tipo de Documento Oficial:", ["Laudo de Avaliação Fonoaudiológica", "Relatório de Evolução Clínica", "Declaração de Comparecimento", "Encaminhamento para Especialista"])
-    
-    st.subheader("Conteúdo e Conclusão do Documento")
-    texto_laudo = st.text_area("Parecer fonoaudiológico descritivo:", placeholder="Escreva a conclusão diagnóstica e a conduta terapêutica indicada...", key="txt_laudo_desc")
-
-    if st.button("⚙️ Compilar Documento Oficial (PDF)", key="btn_compilar_laudo"):
-        if texto_laudo:
-            st.success("Documento estruturado compilado com sucesso no simulador local!")
-            pdf_buf = io.BytesIO()
-            pdf_buf.write(b"Documento Oficial Emitido por FonoClinic Demo v1.5")
-            st.download_button("📥 Baixar Documento PDF", data=pdf_buf.getvalue(), file_name=f"documento_{paciente_laudo.replace(' ', '_')}.pdf", mime="application/pdf")
-        else:
-            st.warning("⚠️ Insira o parecer descritivo para simular a geração do PDF.")
-
-# =====================================================================
-# ABA 7: ANAMNESE COMPLETA E ROBUSTA (HISTÓRICO CLÍNICO DETALHADO)
-# =====================================================================
-with aba7:
-    st.header("📚 Anamnese Clínica Completa & Histórico de Desenvolvimento")
-    st.write("Questionário detalhado para investigações profundas e primeiro contato clínico estruturado.")
-
-    paciente_anamnese_robusta = st.selectbox(
-        "Vincular Histórico ao Paciente:", 
-        ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"], 
-        key="anamnese_robusta_p_sel"
+    paciente_ana_pdf = st.selectbox(
+        "Vincular Anamnese Completa ao Paciente:", 
+        ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], 
+        key="ana_pdf_p_sel"
     )
 
-    # Divisão por Blocos de Investigação Clínica
-    aba_hist_familiar, aba_desenv_global, aba_comportamento = st.tabs([
-        "🧬 Histórico Familiar e Gestacional", 
-        "🏃 Desenvolvimento Motor e Linguagem Profundo", 
-        "🧠 Rotina, Sono e Comportamento"
+    # Organização moderna em sub-abas para não sobrecarregar a tela do consultório
+    sub_aba_geral, sub_aba_cognitiva, sub_aba_comportamento, sub_aba_autonomia = st.tabs([
+        "🩺 Dados Gerais & Saúde", 
+        "🧠 Cognição & Aprendizado", 
+        "🧩 Comportamento & Neurodesenvolvimento", 
+        "🏃 Autonomia & Rotina"
     ])
 
-    # --- 1. HISTÓRICO FAMILIAR E GESTACIONAL ---
-    with aba_hist_familiar:
-        st.subheader("Antecedentes Familiares e Período Gestacional")
+    # --- 1. DADOS GERAIS, ESCOLA E SAÚDE ---
+    with sub_aba_geral:
+        st.subheader("Histórico de Saúde, Escola e Terapias")
         
-        st.text_area("Casos de alterações de fala, audição ou aprendizagem na família?", 
-                     placeholder="Especifique o grau de parentesco e a alteração...", key="rob_fam_antecedentes")
+        with st.container(border=True):
+            col_sc1, col_sc2, col_sc3 = st.columns(3)
+            with col_sc1:
+                estuda_ref = st.radio("Frequenta Escola/Creche?", ["", "Sim", "Não"], horizontal=True, key="pdf_estuda")
+            with col_sc2:
+                st.text_input("Turma Escolar:", placeholder="Ex: 1º Ano EF", key="pdf_turma")
+            with col_sc3:
+                st.text_input("Turno Escolar:", placeholder="Ex: Matutino / Vespertino", key="pdf_turno")
+                
+        with st.container(border=True):
+            st.text_area("Passa a maior parte do tempo com quem?", placeholder="Ex: Mãe, avó, cuidadora...", key="pdf_tempo_com")
+            st.radio("Pratica ou gosta de esportes?", ["", "Sim", "Não"], horizontal=True, key="pdf_esportes")
+
+        with st.container(border=True):
+            st.subheader("Intervenções e Histórico Clínico")
+            terapia_outros = st.radio("Faz terapia com outros profissionais?", ["", "Sim", "Não"], horizontal=True, key="pdf_outras_terap")
+            if terapia_outros == "Sim":
+                st.text_input("Quais profissionais/especialidades?", key="pdf_quais_terap")
+            
+            st.text_area("Já possui diagnóstico fechado? Se sim, qual?", placeholder="Ex: TEA nível 1 de suporte, Apraxia de fala infantil...", key="pdf_diagnostico")
+            
+            col_med1, col_med2 = st.columns(2)
+            with col_med1:
+                st.radio("Apresenta algum tipo de alergia?", ["", "Sim", "Não"], horizontal=True, key="pdf_alergico")
+            with col_med2:
+                st.radio("Toma alguma medicação contínua?", ["", "Sim", "Não"], horizontal=True, key="pdf_medicacao")
+
+        with st.container(border=True):
+            st.subheader("Histórico Neonatal e Alimentar Primitivo")
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+                st.selectbox("Tipo de Parto realizado:", ["", "Cesária", "Normal"], key="pdf_parto")
+                st.text_input("Houve alguma intercorrência no parto/gestação?", key="pdf_intercorrencia")
+            with col_p2:
+                st.radio("Como foi a alimentação inicial?", ["", "Mamou no peito", "Fórmula", "Ambos"], key="pdf_amamentacao")
+                st.radio("Usa ou já usou bicos artificiais (chupeta, mamadeira)?", ["", "Sim", "Não"], horizontal=True, key="pdf_bicos")
+
+    # --- 2. COGNIÇÃO E MARCOS PEDAGÓGICOS (CONTINUAÇÃO) ---
+    with sub_aba_cognitiva:
+        st.subheader("Mapeamento Pedagógico e Habilidades Cognitivas Básicas")
+        st.write("Marque o desempenho cognitivo observado ou relatado pela família:")
+
+        with st.container(border=True):
+            col_cg1, col_cg2 = st.columns(2)
+            with col_cg1:
+                st.radio("Sabe e responde o próprio nome?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_nome")
+                st.radio("Sabe o nome dos pais/responsáveis?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_resp")
+                st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
+            with col_cg2:
+                st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
+                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
+
+        with st.container(border=True):
+            st.subheader("Linguagem e Expressividade")
+            st.radio("O paciente é verbal?", ["", "Sim", "Não"], horizontal=True, key="pdf_verbal")
+            st.radio("Fala ou compreende o idioma inglês? (Telas)", ["", "Sim", "Não"], horizontal=True, key="pdf_ingles")
+            
+            col_nom1, col_nom2, col_nom3 = st.columns(3)
+            with col_nom1: st.radio("Nomeia as cores?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_cores")
+            with col_nom2: st.radio("Nomeia objetos comuns?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_objetos")
+            with col_nom3: st.radio("Nomeia animais?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_animais")
+                
+            st.radio("Identifica e reconhece figuras/ilustrações?", ["", "Sim", "Não"], horizontal=True, key="pdf_identifica_figuras")
+            st.radio("Demonstra habilidade para se expressar?", ["", "Sim", "Não"], horizontal=True, key="pdf_expressar")
+
+    # --- 3. COMPORTAMENTO E NEURODESENVOLVIMENTO ---
+    with sub_aba_comportamento:
+        st.subheader("Mapeamento Neurocomportamental")
         
-        col_g1, col_g2 = st.columns(2)
-        with col_g1:
-            st.radio("Intercorrências durante a gestação (Doenças, quedas, estresse severo)?", ["", "Sim", "Não"], key="rob_gest_intercorrencia")
-            st.text_input("Medicamentos utilizados na gestação:", key="rob_gest_med")
-        with col_g2:
-            st.radio("Tipo de parto:", ["", "Normal / Vaginal", "Cesariana"], key="rob_gest_parto")
-            st.text_input("Idade gestacional no nascimento (Semanas):", placeholder="Ex: 38 semanas", key="rob_gest_idade")
+        with st.container(border=True):
+            st.markdown("**Características de Perfil Predominantes (Marque as aplicáveis):**")
+            col_per1, col_per2, col_per3, col_per4 = st.columns(4)
+            with col_per1: st.checkbox("Agitado(a)", key="pdf_chk_agitado")
+            with col_per2: st.checkbox("Tranquilo(a)", key="pdf_chk_tranquilo")
+            with col_per3: st.checkbox("Inseguro(a)", key="pdf_chk_inseguro")
+            with col_per4: st.checkbox("Impaciente(a)", key="pdf_chk_impaciente")
+
+        with st.container(border=True):
+            st.subheader("Comunicação Social e Padrões de Comportamento")
+            st.radio("Interage bem com outras pessoas/crianças?", ["", "Sim", "Não"], horizontal=True, key="pdf_interage")
+            st.radio("Mantém contato visual (olha no olho) ao ser chamado?", ["", "Sim", "Não"], horizontal=True, key="pdf_olha_olho")
+            st.radio("Apresenta seletividade alimentar marcante?", ["", "Sim", "Não"], horizontal=True, key="pdf_seletividade")
+            st.radio("Apresenta estereotipias motoras/vocais?", ["", "Sim", "Não"], horizontal=True, key="pdf_estereotipia")
+            st.radio("Apresenta ecolalia (repetição de falas)?", ["", "Sim", "Não"], horizontal=True, key="pdf_ecolalia")
+            st.radio("Apresenta fixação/interesse restrito em algo?", ["", "Sim", "Não"], horizontal=True, key="pdf_fixacao")
+
+        with st.container(border=True):
+            st.subheader("Gerenciamento de Crises e Regulação")
+            st.radio("Apresenta comportamentos de autoagressão?", ["", "Sim", "Não"], horizontal=True, key="pdf_auto_agressao")
+            comport_agressivo = st.radio("Apresenta comportamento agressivo com terceiros?", ["", "Sim", "Não"], horizontal=True, key="pdf_agressivo_outros")
+            if comport_agressivo == "Sim":
+                st.text_input("Em quais momentos/gatilhos a agressividade se manifesta?", key="pdf_momentos_agressao")
+
+    # --- 4. AUTONOMIA E ROTINA DIÁRIA ---
+    with sub_aba_autonomia:
+        st.subheader("Habilidades de Vida Diária e Rotina")
+        
+        with st.container(border=True):
+            st.subheader("Higiene, Desfralde e Autonomia")
+            st.radio("Ainda faz uso frequente de fraldas?", ["", "Sim", "Não"], horizontal=True, key="pdf_usa_fralda")
+            st.radio("Sabe/consegue pedir para ir ao banheiro?", ["", "Sim", "Não"], horizontal=True, key="pdf_pede_banheiro")
+            st.radio("Consegue se vestir sozinho(a)?", ["", "Sim", "Não"], horizontal=True, key="pdf_veste_sozinho")
+            st.radio("Demonstra dificuldades de coordenação ou restrição motora?", ["", "Sim", "Não"], horizontal=True, key="pdf_dif_motora")
+            st.radio("Dorme bem e possui um padrão de sono regulado?", ["", "Sim", "Não"], horizontal=True, key="pdf_dorme_bem")
+
+        with st.container(border=True):
+            st.subheader("Interesses, Lazer e Elementos Motivadores")
+            st.radio("Demonstra interesse ativo ou acalma-se ouvindo música?", ["", "Sim", "Não"], horizontal=True, key="pdf_gosta_musica")
+            st.radio("Demonstra empatia ou gosta de animais?", ["", "Sim", "Não"], horizontal=True, key="pdf_gosta_animais")
+            
+            assiste_desenho = st.radio("Costuma assistir a desenhos animados em telas?", ["", "Sim", "Não"], horizontal=True, key="pdf_assiste_desenho")
+            if assiste_desenho == "Sim":
+                st.text_input("Quais são os seus desenhos/personagens favoritos?", key="pdf_quais_desenhos")
+                
+            st.text_area("O que ele(a) mais gosta de brincar ou fazer quando está livre?", placeholder="Ex: Enfileirar carrinhos, blocos de montar...", key="pdf_gosta_brincar")
 
         st.markdown("---")
-        col_n1, col_n2 = st.columns(2)
-        with col_n1:
-            st.text_input("Peso ao nascer (Gramas):", placeholder="Ex: 3150g", key="rob_nascer_peso")
-            st.radio("Chorou logo ao nascer?", ["", "Sim", "Não"], key="rob_nascer_choro")
-        with col_n2:
-            st.text_input("Índice de APGAR (se souber):", placeholder="Ex: 9/10", key="rob_nascer_apgar")
-            st.radio("Necessitou de UTI neonatal ou oxigênio?", ["", "Sim", "Não"], key="rob_nascer_uti")
+        if st.button("💾 Consolidar Anamnese Completa no Prontuário", key="btn_salvar_ana_completa_pdf", type="primary", use_container_width=True):
+            st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial foi vinculado a {paciente_ana_pdf} no prontuário!")
 
-    # --- 2. DESENVOLVIMENTO MOTOR E LINGUAGEM PROFUNDO ---
-    with aba_desenv_global:
-        st.subheader("Marcos do Desenvolvimento e Evolução da Fala")
+# =====================================================================
+# ABA 6: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)
+# =====================================================================
+with aba6:
+    st.header("🗂️ Central Unificada do Paciente & Prontuário Clínico")
+    st.write("Hub gerencial completo. Selecione o prontuário para visualizar históricos, registrar evoluções e emitir relatórios.")
+
+    lista_central_pacientes = ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"]
+    paciente_hub_ativo = st.selectbox("Selecione o Prontuário Ativo para Consulta:", lista_central_pacientes, key="hub_p_ativo")
+    
+    # Sub-abas de visualização e ação integradas em uma única tela
+    sub_hub_ficha, sub_hub_evolucao, sub_hub_laudos = st.tabs([
+        "👤 Ficha Médica & Histórico Integrado", 
+        "🎯 Evolução Ágil & Acompanhamento", 
+        "🖨️ Gerador de Relatórios & Impressão"
+    ])
+
+    # --- TAB 1: FICHA MÉDICA E HISTÓRICO INTEGRADO ---
+    with sub_hub_ficha:
+        st.subheader("📋 Informações Consolidadas do Paciente")
         
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.text_input("Idade em que sustentou a cabeça:", key="rob_mot_cabeca")
-            st.text_input("Idade em que sentou sozinho(a):", key="rob_mot_sentou")
-            st.text_input("Idade em que começou a engatinhar:", key="rob_mot_engatinhou")
-        with col_m2:
-            st.radio("Apresenta quedas frequentes ou falta de equilíbrio?", ["", "Sim", "Não"], key="rob_mot_equilibrio")
-            st.radio("Usa ou um dia usou chupeta / mamadeira? Até que idade?", ["", "Sim", "Não"], key="rob_mot_bico")
-            st.text_input("Idade do desmame e introdução de pastosos:", key="rob_mot_desmame")
+        with st.container(border=True):
+            st.markdown(f"### **Paciente:** {paciente_hub_ativo}")
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                st.markdown("**Filiação:** Dra. Michelle Neves (Mãe Simulada) / Pedro Silva (Pai Simulado)")
+                st.markdown("**Endereço:** Rua das Orquídeas, 456, Ap 201 - Barra da Tijuca, Rio de Janeiro/RJ")
+            with col_f2:
+                st.markdown("**Contato Principal:** (21) 99999-8888")
+                st.markdown("**Status Clínico Ativo:** Plano de Ensino Individualizado (PEI) em Andamento")
 
-        st.markdown("---")
-        st.subheader("Aspectos da Comunicação Atual")
-        col_l1, col_l2 = st.columns(2)
-        with col_l1:
-            st.radio("Como se comunica preferencialmente?", ["Gestos", "Sons isolados", "Palavras soltas", "Frases completas"], key="rob_ling_pref")
-            st.radio("Atende prontamente quando chamado pelo nome?", ["", "Sim", "Não"], key="rob_ling_nome")
-        with col_l2:
-            st.radio("Mantém contato visual recíproco durante o diálogo?", ["", "Sim", "Não"], key="rob_ling_olhar")
-            st.text_area("Descreva como reage quando não é compreendido(a):", placeholder="Ex: Aponta, chora, desiste, morde...", key="rob_ling_frustracao")
+        with st.container(border=True):
+            st.subheader("📚 Resumo Analítico da Anamnese e Triagem")
+            st.write("Dados extraídos dos questionários preenchidos anteriormente:")
+            
+            st.markdown("- **Queixa Principal:** Atraso no desenvolvimento da fala e episódios de seletividade alimentar marcante.")
+            st.markdown("- **Fatores Neurocomportamentais:** Apresenta estereotipias motoras sutis e ecolalia imediata em momentos de frustração.")
+            st.markdown("- **Autonomia Diária:** Em fase de desfralde assistido; atende a comandos funcionais simples com apoio visual.")
 
-    # --- 3. ROTINA, SONO E COMPORTAMENTO ---
-    with aba_comportamento:
-        st.subheader("Rotina Diária e Comportamento Social")
+    # --- TAB 2: EVOLUÇÃO ÁGIL E ACOMPANHAMENTO DIÁRIO ---
+    with sub_hub_evolucao:
+        st.subheader("⚡ Registro de Evolução em 1 Clique (Terapia Lúdica)")
+        st.caption("Marque o desempenho observado durante a sessão de forma rápida:")
         
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            st.radio("Qualidade do sono da criança/paciente:", ["Tranquilo", "Agitado", "Acorda várias vezes", "Terror noturno"], key="rob_sono_qualidade")
-            st.radio("Dorme sozinho(a) no próprio quarto?", ["", "Sim", "Não"], key="rob_sono_quarto")
-        with col_s2:
-            st.radio("Exposição diária a telas (TV, celular, tablet):", ["Não exposto", "Menos de 1 hora", "De 1 a 3 horas", "Mais de 3 horas"], key="rob_comport_telas")
-            st.text_input("Quais os brinquedos ou themes de maior interesse (Hiperfoco)?", key="rob_comport_foco")
+        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+        if col_t1.button("🎯 Alvo Atingido", use_container_width=True, type="primary", key="hub_btn_alvo"):
+            st.toast("Adicionado: Alvo atingido!", icon="🎯")
+        if col_t2.button("👁️ C/ Apoio Visual", use_container_width=True, key="hub_btn_ap_visual"):
+            st.toast("Adicionado: Apoio visual utilizado!", icon="👁️")
+        if col_t3.button("🔄 C/ Apoio Verbal", use_container_width=True, key="hub_btn_ap_verbal"):
+            st.toast("Adicionado: Apoio verbal utilizado!", icon="🔄")
+        if col_t4.button("⚠️ Recusa / Choro", use_container_width=True, key="hub_btn_recusa"):
+            st.toast("Adicionado: Registro de recusa!", icon="⚠️")
+
+        with st.container(border=True):
+            st.subheader("📝 Anotações de Acompanhamento Extra")
+            hub_engajamento = st.segmented_control("Nível de Engajamento na Sessão:", ["Baixo", "Adequado", "Excelente"], default="Adequado")
+            hub_recursos = st.multiselect("Recursos Utilizados:", ["Massa de Modelar", "Jogos de Tabuleiro", "Espelho", "Cartões Visuais", "Brinquedo Simbólico"], default=["Massa de Modelar", "Cartões Visuais"])
+            hub_nota_livre = st.text_area("Notas Clínicas Descritivas (Acompanhamento Livre):", placeholder="Digite aqui observações detalhadas sobre a evolução clínica ou comportamental da sessão...")
+            hub_conduta = st.selectbox("Conduta Próxima Sessão:", ["Manter Planejamento Atual", "Subir Nível de Desafio Fonológico", "Introduzir Novos Estímulos Auditivos"])
+
+        col_ev_b1, col_ev_b2 = st.columns(2)
+        with col_ev_b1:
+            if st.button("💾 Gravar Evolução na Linha do Tempo", type="primary", use_container_width=True):
+                st.success("✅ Evolução clínica arquivada com sucesso no prontuário!")
+        with col_ev_b2:
+            st.file_uploader("🎥 Anexar Mídia Rápida à Sessão (Áudio/Vídeo):", type=["mp3", "wav", "mp4"], key="hub_uploader")
+
+    # --- TAB 3: GERADOR DE RELATÓRIOS E IMPRESSÃO ---
+    with sub_hub_laudos:
+        st.subheader("📄 Emissão de Documentos Clínicos Oficiais")
+        st.write("Compile as informações consolidadas do prontuário para gerar arquivos PDF de impressão.")
+        
+        with st.container(border=True):
+            doc_tipo = st.selectbox("Tipo de Documento Desejado:", [
+                "Relatório de Evolução Clínica e Prontuário", 
+                "Laudo de Avaliação Fonoaudiológica Completo", 
+                "Declaração de Comparecimento e Horário",
+                "Encaminhamento para Especialistas Médicos"
+            ])
+            doc_parecer = st.text_area("Parecer Técnico Descritivo do Documento:", placeholder="Escreva a conclusão diagnóstica, evolução técnica observada e as condutas recomendadas...")
 
         st.markdown("---")
-        st.subheader("Socialização e Escolaridade")
-        st.radio("Frequenta a escola/creche?", ["", "Sim", "Não"], key="rob_esc_frequenta")
-        st.text_input("Série atual e comportamento relatado pela professora:", key="rob_esc_relato")
-        st.text_area("Como interage com outras crianças da mesma idade?", placeholder="Ex: Brinca junto, brinca isolado, divide brinquedos...", key="rob_esc_interacao")
-
-        st.markdown("---")
-        if st.button("💾 Arquivar Anamnese Robusta no Prontuário", key="btn_salvar_anamnese_robusta"):
-            st.success(f"🎉 Perfeito! O histórico detalhado de {paciente_anamnese_robusta} foi compilado e estruturado com sucesso no simulador!")
+        col_pfd1, col_pfd2 = st.columns(2)
+        with col_pfd1:
+            if st.button("⚙️ Compilar e Estruturar Relatório Completo", use_container_width=True):
+                if doc_parecer:
+                    st.success("🎉 Sucesso! Relatório estruturado e preparado na memória local do sistema!")
+                else:
+                    st.warning("⚠️ Adicione o parecer descritivo para estruturar o relatório.")
+        with col_pfd2:
+            pdf_hub_buf = io.BytesIO()
+            pdf_hub_buf.write(b"Documento Clinico Emitido por FonoClinic Premium - Dra. Michelle Neves")
+            st.download_button(
+                "🖨️ Gerar PDF para Download e Impressão", 
+                data=pdf_hub_buf.getvalue(), 
+                file_name=f"Relatorio_{paciente_hub_ativo.split(' ')[0]}.pdf", 
+                mime="application/pdf",
+                use_container_width=True
+            )

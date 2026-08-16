@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import io
 
 # Configuração da página - Layout amplo para celular e computador
-st.set_page_config(page_title="FonoClinic v1.5 - Dev", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="FonoClinic v1.5 - Final", page_icon="🩺", layout="wide")
 
 st.title("🩺 FonoClinic v1.5 — Painel de Demonstração Avançado")
 st.info("💡 Modo de visualização ativo: Banco de dados simulado localmente para validação clínica.")
@@ -146,7 +146,7 @@ with aba3:
 
         st.markdown("---")
         st.subheader("2. Endereço Residencial")
-        col_end1, col_end2, col_end3 = st.columns([3, 1, 2])
+        col_end1, col_end2, col_end3 = st.columns(3)
         with col_end1:
             cad_rua = st.text_input("Logradouro (Rua, Avenida, etc.):", placeholder="Ex: Rua das Flores", key="cad_rua")
         with col_end2:
@@ -154,7 +154,7 @@ with aba3:
         with col_end3:
             cad_compl = st.text_input("Complemento:", placeholder="Ex: Ap 402", key="cad_compl")
 
-        col_end4, col_end5, col_end6 = st.columns([2, 2, 1])
+        col_end4, col_end5, col_end6 = st.columns(3)
         with col_end4:
             cad_bairro = st.text_input("Bairro:", placeholder="Ex: Centro", key="cad_bairro")
         with col_end5:
@@ -239,7 +239,7 @@ with aba5:
         if col_t1.button("🎯 Alvo Atingido", use_container_width=True, type="primary", key="btn_alvo"):
             st.toast("Adicionado: Alvo atingido com sucesso!", icon="🎯")
         if col_t2.button("👁️ Produção c/ Apoio Visual", use_container_width=True, key="btn_ap_visual"):
-            st.toast("Adicionado: Produção correta com apoio visual", icon="👁️")
+            st.toast("Adicionado: Production correta com apoio visual", icon="👁️")
         if col_t3.button("🔄 Produção c/ Apoio Verbal", use_container_width=True, key="btn_ap_verbal"):
             st.toast("Adicionado: Produção com apoio verbal", icon="🔄")
         if col_t4.button("⚠️ Recusa / Choro", use_container_width=True, key="btn_recusa"):
@@ -385,16 +385,16 @@ with aba7:
             st.text_input("Idade em que começou a engatinhar:", key="rob_mot_engatinhou")
         with col_m2:
             st.radio("Apresenta quedas frequentes ou falta de equilíbrio?", ["", "Sim", "Não"], key="rob_mot_equilibrio")
-            st.radio("Usa ou usou chupeta / mamadeira? Até que idade?", ["", "Sim", "Não"], key="rob_mot_bico")
+            st.radio("Usa ou um dia usou chupeta / mamadeira? Até que idade?", ["", "Sim", "Não"], key="rob_mot_bico")
             st.text_input("Idade do desmame e introdução de pastosos:", key="rob_mot_desmame")
 
         st.markdown("---")
         st.subheader("Aspectos da Comunicação Atual")
         col_l1, col_l2 = st.columns(2)
-        with l1 := col_l1:
+        with col_l1:
             st.radio("Como se comunica preferencialmente?", ["Gestos", "Sons isolados", "Palavras soltas", "Frases completas"], key="rob_ling_pref")
             st.radio("Atende prontamente quando chamado pelo nome?", ["", "Sim", "Não"], key="rob_ling_nome")
-        with l2 := col_l2:
+        with col_l2:
             st.radio("Mantém contato visual recíproco durante o diálogo?", ["", "Sim", "Não"], key="rob_ling_olhar")
             st.text_area("Descreva como reage quando não é compreendido(a):", placeholder="Ex: Aponta, chora, desiste, morde...", key="rob_ling_frustracao")
 
@@ -408,7 +408,7 @@ with aba7:
             st.radio("Dorme sozinho(a) no próprio quarto?", ["", "Sim", "Não"], key="rob_sono_quarto")
         with col_s2:
             st.radio("Exposição diária a telas (TV, celular, tablet):", ["Não exposto", "Menos de 1 hora", "De 1 a 3 horas", "Mais de 3 horas"], key="rob_comport_telas")
-            st.text_input("Quais os brinquedos ou temas de maior interesse (Hiperfoco)?", key="rob_comport_foco")
+            st.text_input("Quais os brinquedos ou themes de maior interesse (Hiperfoco)?", key="rob_comport_foco")
 
         st.markdown("---")
         st.subheader("Socialização e Escolaridade")

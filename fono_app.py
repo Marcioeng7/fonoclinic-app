@@ -12,30 +12,20 @@ import json  # Certifique-se de que esta linha está no topo absoluto do arquivo
 # =====================================================================
 # MOTOR DE CONEXÃO PREMIUM VIA PARSER JSON DIRETO (SEM ARQUIVOS LOCAIS)
 # =====================================================================
+from streamlit_gsheets import GSheetsConnection
+
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        # Método direto por Chave de API simples (Sem arquivos de segurança complexos)
-        # Substitua o texto abaixo pela chave de API gerada no console do Google se tiver, 
-        # ou use o cliente público direto se sua planilha já estiver aberta.
-        cliente = gspread.public_api() 
+        # Usa o motor oficial do Streamlit que lê as credenciais automaticamente
+        conn = st.connection("gsheets", type=GSheetsConnection)
         
-        # Link direto da sua planilha do navegador
-        url_planilha = "https://google.com"
-        
-        planilha = cliente.open_by_url(url_planilha)
+        # Abre a planilha pelo nome exato dela
+        planilha = conn.open("FonoClinic_Data")
         return planilha
     except Exception as e:
-        # Se o gspread exigir a chave de API explícita, usamos o método chave direta:
-        try:
-            # Substitua com uma API Key simples gerada em 1 minuto no Google Cloud Console (Credentials -> Create Credentials -> API Key)
-            api_key = "AIzaSyA1..." 
-            cliente = gspread.api_key(api_key)
-            planilha = cliente.open("FonoClinic_Data")
-            return planilha
-        except Exception as e2:
-            st.error(f"❌ Erro de conexão simplificada: {e2}")
-            return None
+        st.error(f"❌ Erro na conexão oficial do Streamlit: {e}")
+        return None
 
 
 # Inicializa a conexão global do banco de dados na inicialização

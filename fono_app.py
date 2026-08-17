@@ -21,7 +21,7 @@ def conectar_google_sheets():
         conn = st.connection("gsheets", type=GSheetsConnection)
         
         # Link do navegador da sua planilha Google Sheets
-        link_da_planilha = "https://google.com"
+        link_da_planilha = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?pli=1&gid=0#gid=0"
         
         # Lê a aba "Pacientes" informando o link explicitamente para o Streamlit
         conn.read(spreadsheet=link_da_planilha, worksheet="Pacientes", ttl="10m")

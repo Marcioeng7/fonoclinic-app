@@ -15,25 +15,36 @@ import json  # Certifique-se de que esta linha está no topo absoluto do arquivo
 @st.cache_resource
 def conectar_google_sheets():
     try:
-            escopos = [
+        escopos = [
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive"
         ]
         
-            # LÊ A CHAVE CORRETA QUE ESTÁ SALVA NAS SECRETS DO STREAMLIT
-            json_string = st.secrets["gspread_json"]
-            
-            # Converte a string linear limpa em um dicionário nativo do Python
-            credenciais_dict = json.loads(json_string)
-            
-            # Realiza a autenticação direta com o Google
-            creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
-            cliente = gspread.authorize(creds)
-            planilha = cliente.open("FonoClinic_Data")
-            return planilha
+        # Credencial injetada de forma nativa na memória para ignorar o st.secrets
+        credenciais_dict = {
+            "type": "service_account",
+            "project_id": "fonoclinic-db",
+            "private_key_id": "d1f5ce5615f2c531bbe75333c7c003014522e58c",
+            "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDdfuoNO4Tdfywi\nd6bByPZ+fPmSCqQk4VNc0kMVd6hyxbe7bj7fPifsH/vkSSho4kMSfubSvIwQ+6J8\neNZEMwfhu3ZynFDMC2BilOh/18sl9nj7SB4FgtRT706rUF5mNH7LQrQ+24ToyoyQ\ntMF6DkTnl1YivvvtlnnwkqiEIWcnq6fDgzb+VbQFnDNHCmkf0zoYbUrsqKXRJ3/l\n2SIjsnQc/MF2XQbGbEGPBwQqJx0eO3HrkXN+pAopv7vvrlHElSV4lRucieXRt54C\nqaTaJHXdLDEAiY8InsDY+/SqPJWeIUtnBVB0AZa+3bZJGxvGTL2zInA0qibyWz5N\no5ci35D1AgMBAAECggEAZ5YWrKiUuyfiAp6VmNQ83yvgZdnfKTZNz7+vyubimwZ3\npkrpUWtWrVnJ6loCcYa7mndJyO2PzdN5CqBSiKObAIk03GXZbYu2gHQmhb9sjO0H\naHEyRR6J4VUuI/VaqI7Na47fD/SG5H3xni1CvKvWsr52dJp/5H22unlEIUMj5ItG\nbbXDcBQwPdEpOfLXkiUEi6ySuWza7ZLQ7p8yStx3MDlrZDD33TeQltL9kJumCQ6P\nOaxSOsl2zZ/+AVXwBOcHF9iyvVEcRaRsAifnGFyCcXSb4CdEyRLlA0YGkJRXbU2/\nqlow0A9KYkVR9Dm9yjStghOFZOujxGLsoBXSlb1nkwKBgQD3fNprNJRHP6eAajoa\nBm60uHbGKvyFEvV8f87WgRJ9NTGZKP26bJlJ+16HSHkmSUFW74ucpivSo9T8dMXC\neOsS5yaXIh3Syapdf4l+/bzdIPDm5TLf0QDFIVVYn0QZ1MmIckd8CYt2ZRWC0Mjb\nVevfUlZYo9sXqKhLjNo5lTfCAwKBgQDlHTM6qzwGQBysY3FkF+NyvSNn4LWoygII\nQ7KlH5wK5UQb6h/04tfiWH0FtzFZDBtbyRBVwKnRRWMjzJzzLzlDgJUQRh67zd3a\nvqNNC2UdBtPNq0WapXe8h4Cj8pco/ssOOUd4IIHsvGTmhJ1S6TXLA9ARbmVvxHVT\n2/MI3virpwKBgCM7oRS2DY3/H+eGN/NQix4rTK11nTGMu2oX/+hFw84TbpYxYb3S\njBgeMxzrUmQC9cxcmfGZLo/0RvQR472F3WF5iuLlNn21vA1HhNmRYfvRHrqgUpfO\nd1+ZGT9enSFYS8CjFE4yRap7RY60DoQ7PTMz05sW6K/7kMoAqWidN6zlAoGAZriz\nyj8Rl1/ROz0OjqjjMgM4x48JA1cmmBv6EWxdosjtw3Ixx7KYxgOUciaTOnBiJ8G6\n0CekO45Xh6pqR+HJU8lni7dUejEvoa5NOvK778qq1ZBPkalUSLOb6mWOfjPWSFdI\nAsTYW5KPzoZwnsaudooMFHShh/3V+LYpfbWyWgsCgYEAnzM+O0pmgcJeYFdKB/UO\nnhgdgDUf3u0k5pC5uxjGJq0baSJGVDzE41eN0ET76ckQ4+aNoyHJSTZ47lDUhY2k\nnf3b10Sqxpw6yU3GVdKHC/rjZbdqenGvRBNoCN930AoSaELtgIhyl1KlYyivJfBYZ\n1HpKw9UsHn1G9ugSaQ+t3pY=\n-----END PRIVATE KEY-----\n",
+            "client_email": "fono-server@fonoclinic-db.iam.gserviceaccount.com",
+            "client_id": "118094350729921739874",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/fono-server%40:fonoclinic-db.iam.gserviceaccount.com",
+            "universe_domain": "googleapis.com"
+        }
+        
+        # Autenticação direta do dicionário estruturado
+        creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
+        cliente = gspread.authorize(creds)
+        planilha = cliente.open("FonoClinic_Data")
+        return planilha
     except Exception as e:
-            st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
-            return None
+        st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
+        return None
+
+
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

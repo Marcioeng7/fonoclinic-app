@@ -17,14 +17,16 @@ from streamlit_gsheets import GSheetsConnection
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        # Abre a conexão usando a biblioteca oficial do Streamlit
+        # Inicializa a conexão oficial do Streamlit
         conn = st.connection("gsheets", type=GSheetsConnection)
         
-        # Puxa os dados da aba "Pacientes" para validar a conexão ativa
-        # (Ajuste o nome se a aba principal se chamar diferente)
-        conn.read(worksheet="Pacientes", ttl="10m")
+        # Link do navegador da sua planilha Google Sheets
+        link_da_planilha = "https://google.com"
         
-        # Retorna a própria conexão estável para ser usada pelo resto do app
+        # Lê a aba "Pacientes" informando o link explicitamente para o Streamlit
+        conn.read(spreadsheet=link_da_planilha, worksheet="Pacientes", ttl="10m")
+        
+        # Retorna a conexão validada para o resto do app
         return conn
     except Exception as e:
         st.error(f"❌ Erro na conexão oficial do Streamlit: {e}")

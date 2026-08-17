@@ -1,3 +1,15 @@
+import streamlit as st
+from datetime import date, datetime, timedelta
+import io
+import gspread
+from google.oauth2.service_account import Credentials
+
+# CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA ANTES DE QUALQUER DECORADOR
+st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
+
+# =====================================================================
+# MOTOR DE CONEXÃO REFORMULADO
+# =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -24,6 +36,7 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
+
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

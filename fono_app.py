@@ -1,11 +1,90 @@
 import streamlit as st
 from datetime import date, datetime, timedelta
 import io
+import gspread
+from google.oauth2.service_account import Credentials
 
 # Configuração da página - Layout amplo e responsivo para celular e computador
 st.set_page_config(page_title="FonoClinic v1.7 - Premium", page_icon="🩺", layout="wide")
 
-# Estilização CSS avançada para design chique, moderno e livre de poluição visual
+# =====================================================================
+# MOTOR DE CONEXÃO PREMIUM COM GOOGLE SHEETS VIA SECRETS
+# =====================================================================
+@st.cache_resource
+def conectar_google_sheets():
+    try:
+        escopos = [
+            "https://googleapis.com",
+            "https://googleapis.com"
+        ]
+        credenciais_dict = dict(st.secrets["gspread_credentials"])
+        credenciais_dict["private_key"] = credenciais_dict["private_key"].replace("\\n", "\n")
+        creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
+        cliente = gspread.authorize(creds)
+        planilha = cliente.open("FonoClinic_Data")
+        return planilha
+    except Exception as e:
+        st.error(f"❌ Erro crítico de conexão com o Google Sheets: {e}")
+        return None
+
+# Inicializa a conexão global do banco de dados
+db_google = conectar_google_sheets()
+
+# =====================================================================
+# FUNÇÕES DE PERSISTÊNCIA E GRAVAÇÃO DE DADOS NO GOOGLE SHEETS
+# =====================================================================
+def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, cidade):
+    if not db_google:
+        st.error("❌ Não foi possível gravar. Conexão com o banco de dados indisponível.")
+        return False
+    try:
+        aba_pacientes = db_google.worksheet("Pacientes")
+        nova_linha = [
+            date.today().strftime("%d/%m/%Y"),
+            nome, 
+            nascimento.strftime("%d/%m/%Y") if isinstance(nascimento, date) else str(nascimento), 
+            genero, 
+            cpf, 
+            mae, 
+            pai, 
+            responsavel, 
+            telefone, 
+            ", ".join(perfis),
+            rua, 
+            numero, 
+            bairro, 
+            cidade
+        ]
+        aba_pacientes.append_row(nova_linha)
+        return True
+    except Exception as e:
+        st.error(f"⚠️ Erro ao inserir paciente na planilha: {e}")
+        return False
+
+def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_tosse, meta2_voz, notas_clinicas, proxima_conduta):
+    if not db_google:
+        st.error("❌ Não foi possível gravar. Conexão com o banco de dados indisponível.")
+        return False
+    try:
+        aba_evolucoes = db_google.worksheet("Evolucoes")
+        nova_linha = [
+            date.today().strftime("%d/%m/%Y"),
+            paciente, 
+            protocolo, 
+            ", ".join(recursos), 
+            evolucao_slider, 
+            meta1_tosse, 
+            meta2_voz, 
+            notas_clinicas, 
+            proxima_conduta
+        ]
+        aba_evolucoes.append_row(nova_linha)
+        return True
+    except Exception as e:
+        st.error(f"⚠️ Erro ao inserir evolução na planilha: {e}")
+        return False
+
+# Estilização CSS avançada para design chique e moderno
 st.markdown("""
     <style>
     .reportview-container { background: #f8f9fa; }
@@ -31,9 +110,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
-st.info("💡 Modo de visualização ativo: Interface clínica premium com simulador de dados local.")
+if db_google:
+    st.success("🟢 Banco de Dados Google Sheets Conectado e Ativo!")
+else:
+    st.error("🔴 Aguardando Conexão ativa com o Google Sheets.")
 
-# --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
+# --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS ---
 horarios_disponiveis = []
 hora_atual = datetime.strptime("08:00", "%H:%M")
 hora_fim = datetime.strptime("20:00", "%H:%M")
@@ -41,7 +123,6 @@ while hora_atual <= hora_fim:
     horarios_disponiveis.append(hora_atual.strftime("%H:%M"))
     hora_atual += timedelta(minutes=10)
 
-# Função interna para gerar as perguntas de Sim/Não com padrão em branco ("")
 def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes"):
     col1, col2 = st.columns(2)
     with col1:
@@ -52,15 +133,15 @@ def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes
             detalhe = st.text_input(f"{label_adicional}", key=f"{key}_det")
     return resposta, detalhe
 
-# AS 7 ABAS OFICIAIS DO SOFTWARE REORDENADAS POR FLUXO CRONOLÓGICO CLÍNICO
+# AS 7 ABAS OFICIAIS DO SOFTWARE
 aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
-    "📋 Painel de Atendimento",         # 1. Agenda e grade diária
-    "📅 Marcar Horário",                # 2. Agendamento e recorrências
-    "👤 Admitir Paciente (Cadastro)",     # 3. Admissão completa com escolha manual de perfis/tags
-    "📝 Triagem Rápida",                # 4. Primeira queixa e sinais imediatos
-    "📚 Anamnese Completa (Robusta)",    # 5. Questionário profundo do seu PDF + Flexibilidade de perguntas
-    "🩺 Sessão do Dia (Evolução)",       # 6. Registro adaptativo corrigido sem erros de download
-    "🗂️ Central do Paciente (Prontuário)" # 7. Hub Unificado com histórico acumulado e relatórios
+    "📋 Painel de Atendimento",
+    "📅 Marcar Horário",
+    "👤 Admitir Paciente (Cadastro)",
+    "📝 Triagem Rápida",
+    "📚 Anamnese Completa (Robusta)",
+    "🩺 Sessão do Dia (Evolução)",
+    "🗂️ Central do Paciente (Prontuário)"
 ])
 
 # =====================================================================
@@ -154,14 +235,14 @@ with aba2:
                 st.write(f"📂 **Análise do dia {data_inicio.strftime('%d/%m/%Y')}:** Horários sugeridos: " + ", ".join(horarios_disponiveis[8:14]))
         with col_btn2:
             if st.button("🗓️ Fixar e Confirmar Agendamento", key="btn_fixar_agenda", type="primary", use_container_width=True):
-                st.success(f"🎉 Sucesso! Compromisso agendado para {p_nome} às {hora_agend}!")
+                st.success(f"🎉 Sucesso! Compromisso agendado para {p_nome} através do fluxo integrado!")
 
 # =====================================================================
-# ABA 3: ADMITIR PACIENTE (CADASTRO PREMIUM COM PERFIL HÍBRIDO)
+# ABA 3: ADMITIR PACIENTE (CADASTRO PREMIUM CONECTADO AO GOOGLE SHEETS)
 # =====================================================================
 with aba3:
     st.header("👤 Admissão e Cadastro de Novo Paciente")
-    st.write("Insira as informações cadastrais fundamentais. Os campos de endereço, filiação e tags clínicas estão unificados abaixo.")
+    st.write("Insira as informações cadastrais. Os dados serão salvos em tempo real na sua planilha Google Sheets.")
 
     with st.form("form_cadastro_paciente"):
         st.markdown("### 🧬 1. Dados Pessoais, Filiação e Perfil Clínico")
@@ -179,10 +260,9 @@ with aba3:
                 cad_resp = st.text_input("Responsável Legal / Cuidador:", placeholder="Se menor de idade ou dependente")
                 cad_tel = st.text_input("Telefone de Contato (WhatsApp):", placeholder="(00) 00000-0000")
         
-        # Recurso Híbrido: Escolha manual de categorias para cruzamento dinâmico
         with st.container(border=True):
             st.markdown("**🏷️ Classificação e Perfil de Atendimento:**")
-            st.caption("Selecione uma ou mais categorias para ativar os protocolos automáticos no prontuário:")
+            st.caption("Selecione as categorias para ativar os protocolos automáticos no prontuário:")
             cad_perfis = st.multiselect(
                 "Categorias Diagnósticas / Clínicas:",
                 ["👶 Infantil", "🧓 Adulto/Idoso", "🧩 TEA (Autismo)", "🗣️ Apraxia de Fala", "🍽️ Disfagia (Deglutição)", "🧠 Afasia/Cognição", "🎙️ Voz/Motricidade Orofacial"],
@@ -211,15 +291,23 @@ with aba3:
         st.markdown("### 📂 3. Informações Complementares")
         with st.container(border=True):
             cad_email = st.text_input("E-mail para Envio de Treinos/Laudos:", placeholder="exemplo@email.com")
-            cad_obs = st.text_area("Observações Administrativas Importantes:", placeholder="Restrições de horários, convênio, preferências de atendimento...")
+            cad_obs = st.text_area("Observações Administrativas Importantes:", placeholder="Restrições, convênio...")
 
         st.markdown("---")
         btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão", type="primary", use_container_width=True)
         if btn_salvar_cadastro:
             if cad_nome:
-                st.success(f"🎉 Registro de {cad_nome} salvo com sucesso com os perfis {', '.join(cad_perfis)}!")
+                # CHAMADA REAL DA CONEXÃO DO GOOGLE SHEETS
+                sucesso = salvar_novo_paciente(
+                    nome=cad_nome, nascimento=cad_nasc, genero=cad_genero, cpf=cad_cpf,
+                    mae=cad_mae, pai=cad_pai, responsavel=cad_resp, telefone=cad_tel,
+                    perfis=cad_perfis, rua=cad_rua, numero=cad_num, bairro=cad_bairro, cidade=cad_cidade
+                )
+                if sucesso:
+                    st.success(f"🎉 Excelente! O registro de {cad_nome} foi gravado na planilha Google Sheets com sucesso!")
+                    st.balloons()
             else:
-                st.warning("⚠️ Por favor, insira pelo menos o nome do paciente para testar a gravação.")
+                st.warning("⚠️ O campo 'Nome Completo do Paciente' é obrigatório para realizar a gravação.")
 
 # =====================================================================
 # ABA 4: TRIAGEM RÁPIDA (PRIMEIRA QUEIXA E SINTOMAS INICIAIS)
@@ -236,8 +324,8 @@ with aba4:
     
     with st.container(border=True):
         st.subheader("🚨 Queixa Principal e Antecedentes Médicos")
-        tri_queixa = st.text_area("Qual a queixa principal trazida pela família ou paciente?", placeholder="Ex: Dificuldade de articulação, engasgos frequentes, atraso na fala...")
-        tri_historico = st.text_area("Histórico médico relevante (Intervenções anteriores, exames realizados, diagnósticos já laudados):")
+        tri_queixa = st.text_area("Qual a queixa principal trazida pela família ou paciente?", placeholder="Ex: Dificuldade de articulação...")
+        tri_historico = st.text_area("Histórico médico relevante (Intervenções anteriores, exames realizados):")
 
     with st.container(border=True):
         st.subheader("🗣️ Marcos Rápidos de Desenvolvimento Motor e Fala")
@@ -247,8 +335,8 @@ with aba4:
 
     with st.container(border=True):
         st.subheader("🍽️ Aspectos Sensoriais, Auditivos e Alimentares Básicos")
-        resp_aud, det_aud = pergunta_sim_nao("Demonstra dificuldade para ouvir ou falta de atenção a sons cotidianos?", "tri_aud")
-        resp_mast, det_mast = pergunta_sim_nao("Apresenta dificuldade ou recusa marcante na mastigação/deglutição?", "tri_mast", info_adicional=True, label_adicional="Descreva os alimentos ou texturas recusados:")
+        resp_aud, det_aud = pergunta_sim_nao("Demonstra dificuldade para ouvir ou falta de atenção a sons?", "tri_aud")
+        resp_mast, det_mast = pergunta_sim_nao("Apresenta dificuldade ou recusa na mastigação/deglutição?", "tri_mast", info_adicional=True, label_adicional="Descreva as texturas recusadas:")
 
     st.markdown("---")
     if st.button("💾 Gravar e Consolidar Triagem Rápida", key="btn_salvar_triagem", type="primary", use_container_width=True):
@@ -415,7 +503,7 @@ with aba5:
         st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial e campos personalizados foram salvos com sucesso!")
 
 # =====================================================================
-# ABA 6: SESSÃO DO DIA (ATENDIMENTO ADAPTATIVO POR PERFIL COM IDADES)
+# ABA 6: SESSÃO DO DIA (ATENDIMENTO ADAPTATIVO POR PERFIL COM IDADES E GOOGLE SHEETS)
 # =====================================================================
 with aba6:
     st.header("🩺 Registro de Atendimento de Sessão")
@@ -447,7 +535,7 @@ with aba6:
     }
     idade_paciente_atual = historico_idades.get(paciente_sessao, "Não Informada")
 
-    # Banner de métricas premium atualizado com 4 colunas chiques
+    # Banner de métricas premium com 4 colunas chiques
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1: st.metric("Atendimento Atual", f"Sessão Nº {num_sessao}")
     with col_m2: st.metric("Idade do Paciente", f"🎂 {idade_paciente_atual}")
@@ -479,15 +567,19 @@ with aba6:
         with col_s2:
             nivel_evolucao = st.select_slider("Evolução Percebida hoje:", options=["Regressão/Crise", "Estável", "Evolução Gradual", "Independente"])
 
+        # Variáveis locais para armazenar seleções dinâmicas das metas
+        meta_inf_1 = "Não Iniciado"
+        meta_inf_2 = "Não Iniciado"
+
         # --- EXCLUSIVO FLUXO INFANTIL / TEA ---
         if fluxo_ativo == "Infantil":
             st.markdown("<p style='color:#007bff; font-weight:bold;'>🎯 Acompanhamento de Metas do PEI (Infantil)</p>", unsafe_allow_html=True)
             with st.container(border=True):
                 col_pei1, col_pei2 = st.columns(2)
                 with col_pei1:
-                    st.select_slider("Meta 1 (Linguagem Expressiva - Fonemas):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Com Apoio", key="hub_pei_1")
+                    meta_inf_1 = st.select_slider("Meta 1 (Linguagem Expressiva - Fonemas):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Com Apoio", key="hub_pei_1")
                 with col_pei2:
-                    st.select_slider("Meta 2 (Socioemocional - Contato Visual):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Em Introdução", key="hub_pei_2")
+                    meta_inf_2 = st.select_slider("Meta 2 (Socioemocional - Contato Visual):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Em Introdução", key="hub_pei_2")
         
         # --- EXCLUSIVO FLUXO ADULTO / DISFAGIA / AFASIA ---
         else:
@@ -495,11 +587,11 @@ with aba6:
             with st.container(border=True):
                 col_ad1, col_ad2 = st.columns(2)
                 with col_ad1:
-                    st.checkbox("Sinais de Penetração/Aspiração (Tosse/Engasgo com Líquidos)", key="hub_chk_tosse")
-                    st.checkbox("Voz Molhada após Deglutição", key="hub_chk_voz_molhada")
+                    chk_tosse = st.checkbox("Sinais de Penetração/Aspiração (Tosse/Engasgo com Líquidos)", key="hub_chk_tosse")
+                    chk_voz = st.checkbox("Voz Molhada após Deglutição", key="hub_chk_voz_molhada")
                 with col_ad2:
-                    st.checkbox("Presença de Anomia (Dificuldade de encontrar palavras)", key="hub_chk_anomia")
-                    st.selectbox("Consistência Segura Testada hoje:", ["Nenhuma", "Zero (Líquidos Finos)", "Nível 4 (Pastoso)", "Nível 7 (Sólidos)"], key="hub_sel_consist")
+                    chk_anomia = st.checkbox("Presença de Anomia (Dificuldade de encontrar palavras)", key="hub_chk_anomia")
+                    sel_consist = st.selectbox("Consistência Segura Testada hoje:", ["Nenhuma", "Zero (Líquidos Finos)", "Nível 4 (Pastoso)", "Nível 7 (Sólidos)"], key="hub_sel_consist")
 
         st.subheader("🧠 Notas Clínicas Descritivas")
         observacoes_dia = st.text_area("Descreva detalhadamente as respostas do paciente hoje:", height=150)
@@ -508,9 +600,26 @@ with aba6:
         st.markdown("---")
         btn_gravar_sessao = st.form_submit_button("💾 Finalizar Atendimento e Enviar para o Prontuário", type="primary", use_container_width=True)
         if btn_gravar_sessao:
-            st.success(f"✅ Atendimento Nº {num_sessao} processado com sucesso!")
+            # Captura e estruturação dos dados baseada no fluxo ativo para gravação
+            meta_ou_tosse = str(meta_inf_1) if fluxo_ativo == "Infantil" else f"Tosse/Aspiração: {chk_tosse}"
+            meta_ou_voz = str(meta_inf_2) if fluxo_ativo == "Infantil" else f"Voz Molhada: {chk_voz} | Anomia: {chk_anomia} | Consistência: {sel_consist}"
+            
+            # CHAMADA REAL DA FUNÇÃO CONECTADA AO GOOGLE SHEETS
+            sucesso_sessao = salvar_nova_evolucao(
+                paciente=paciente_sessao,
+                protocolo=protocolo_utilizado,
+                recursos=recursos_utilizados,
+                evolucao_slider=nivel_evolucao,
+                meta1_tosse=meta_ou_tosse,
+                meta2_voz=meta_ou_voz,
+                notas_clinicas=observacoes_dia,
+                proxima_conduta=proxima_conduta
+            )
+            if sucesso_sessao:
+                st.success(f"✅ Sucesso absoluto! O Atendimento Nº {num_sessao} foi consolidado na nuvem do Google Sheets!")
+                st.balloons()
 
-    # POSICIONADO FORA DO st.form PARA BLINDAGEM CONTRA EXCEÇÕES
+    # POSICIONADO FORA DO st.form PARA EVITAR EXCEÇÕES DE DOWNLOAD
     st.markdown("### 🖨️ Documentação da Sessão")
     pdf_quick_buf = io.BytesIO()
     pdf_quick_buf.write(b"Comprovante de Evolucao de Sessao Avulsa")

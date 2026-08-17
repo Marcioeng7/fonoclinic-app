@@ -3,12 +3,10 @@ from datetime import date, datetime, timedelta
 import io
 import gspread
 from google.oauth2.service_account import Credentials
-
-# Configuração da página - Layout amplo e responsivo para qualquer monitor
-st.set_page_config(page_title="FonoClinic v1.7 - Premium Pro", page_icon="🩺", layout="wide")
+import json  # Certifique-se de incluir esta linha no topo do arquivo
 
 # =====================================================================
-# MOTOR DE CONEXÃO PREMIUM COM GOOGLE SHEETS VIA SECRETS (BLINDADO)
+# MOTOR DE CONEXÃO REFORMULADO VIA PARSER JSON DIRETO
 # =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
@@ -18,26 +16,13 @@ def conectar_google_sheets():
             "https://googleapis.com"
         ]
         
-        # Carrega as credenciais como um dicionário seguro
-        credenciais_dict = dict(st.secrets["gspread_credentials"])
+        # Lê a credencial estruturada como texto linear puro do Streamlit Secrets
+        json_string = st.secrets["gspread_json"]
         
-        # BLINDAGEM MÁXIMA CONTRA ERRO DE PEM (SÍMBOLO 61 / QUEBRAS DE LINHA DO TOML)
-        pk = credenciais_dict["private_key"]
+        # Converte a string limpa diretamente em dicionário Python nativo
+        credenciais_dict = json.loads(json_string)
         
-        # Remove possíveis aspas residuais inseridas pelo parser do Streamlit
-        pk = pk.strip().strip('"').strip("'")
-        
-        # Corrige as barras invertidas literais (\n) geradas em strings do TOML
-        if "\\n" in pk:
-            pk = pk.replace("\\n", "\n")
-            
-        # Normaliza quebras de linha para garantir a leitura limpa do arquivo PEM
-        linhas_pk = [linha.strip() for linha in pk.split("\n") if linha.strip()]
-        pk_limpa = "\n".join(linhas_pk)
-        
-        credenciais_dict["private_key"] = pk_limpa
-        
-        # Realiza a autenticação oficial com o ecossistema do Google
+        # Realiza a autenticação oficial sem passar pelo validador TOML do arquivo PEM
         creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")
@@ -45,6 +30,7 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
+
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

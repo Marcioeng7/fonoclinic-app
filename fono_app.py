@@ -4,11 +4,11 @@ import io
 import gspread
 from google.oauth2.service_account import Credentials
 
-# CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA ANTES DE QUALQUER DECORADOR
+# CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
 
 # =====================================================================
-# MOTOR DE CONEXÃO REFORMULADO
+# MOTOR DE CONEXÃO PREMIUM RECONSTRUTOR COM SEGURANÇA
 # =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
@@ -36,7 +36,6 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
-
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()
@@ -124,7 +123,7 @@ st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
 if db_google:
     st.success("🟢 Banco de Dados Google Sheets Conectado e Ativo com Sucesso!")
 else:
-    st.error("🔴 Módulo Google Sheets inativo. Verifique as credenciais e o erro acima.")
+    st.error("🔴 Módulo Google Sheets inativo. Verifique as credenciais.")
 
 # --- GERADOR DE ENCAIXES RECORRENTES DA GRADE ---
 horarios_disponiveis = []
@@ -168,6 +167,7 @@ with aba1:
     )
     data_base = st.date_input("Data de Referência:", value=date.today(), key="painel_data_ref")
     
+    # Massa de dados completa contendo a idade analítica para visualização
     dados_agenda_sheets = [
         {"id_linha": "1", "paciente": "Arthur Silva", "idade": "6 anos e 4 meses", "perfil": "👶 Infantil (TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios lúdicos"},
         {"id_linha": "2", "paciente": "Beatriz Souza", "idade": "4 anos e 1 mês", "perfil": "👶 Infantil (Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo central"},
@@ -187,6 +187,7 @@ with aba1:
         
     st.markdown("---")
 
+    # Geração dos cards clínicos com as idades visíveis
     for ag in dados_agenda_sheets:
         with st.container(border=True):
             col_c1, col_c2, col_c3 = st.columns(3)
@@ -309,7 +310,7 @@ with aba3:
                 sucesso = salvar_novo_paciente(
                     nome=cad_nome, nascimento=cad_nasc, genero=cad_genero, cpf=cad_cpf,
                     mae=cad_mae, pai=cad_pai, responsavel=cad_resp, telefone=cad_tel,
-                    perfis=cad_perfis, rua=cad_rua, numero=cad_num, bairro=cad_bairro, cidade=cad_cidade
+                    perfis=cad_perfis, rua=cad_rua, numero=cad_num, bairro=cad_bairro, city=cad_cidade
                 )
                 if sucesso:
                     st.success(f"🎉 Excelente! O registro de {cad_nome} foi gravado na planilha Google Sheets com sucesso!")
@@ -385,7 +386,7 @@ with aba5:
                 st.text_input("Turno Escolar:", placeholder="Ex: Matutino / Vespertino", key="pdf_turno")
                 
         with st.container(border=True):
-            st.text_area("Passa a maior parte do tempo com whom?", placeholder="Ex: Mãe, avó, cuidadora...", key="pdf_tempo_com")
+            st.text_area("Passa a maior parte do tempo com quem?", placeholder="Ex: Mãe, avó, cuidadora...", key="pdf_tempo_com")
             st.radio("Pratica ou gosta de esportes?", ["", "Sim", "Não"], horizontal=True, key="pdf_esportes")
 
         with st.container(border=True):
@@ -425,7 +426,7 @@ with aba5:
                 st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
             with col_cg2:
                 st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
                 st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
 
         with st.container(border=True):

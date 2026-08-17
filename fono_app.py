@@ -15,25 +15,25 @@ import json  # Certifique-se de que esta linha está no topo absoluto do arquivo
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        escopos = [
-            "https://googleapis.com",
-            "https://googleapis.com"
+            escopos = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
         ]
         
-        # LÊ A CHAVE CORRETA QUE ESTÁ SALVA NAS SECRETS DO STREAMLIT
-        json_string = st.secrets["gspread_json"]
-        
-        # Converte a string linear limpa em um dicionário nativo do Python
-        credenciais_dict = json.loads(json_string)
-        
-        # Realiza a autenticação direta com o Google
-        creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
-        cliente = gspread.authorize(creds)
-        planilha = cliente.open("FonoClinic_Data")
-        return planilha
+            # LÊ A CHAVE CORRETA QUE ESTÁ SALVA NAS SECRETS DO STREAMLIT
+            json_string = st.secrets["gspread_json"]
+            
+            # Converte a string linear limpa em um dicionário nativo do Python
+            credenciais_dict = json.loads(json_string)
+            
+            # Realiza a autenticação direta com o Google
+            creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
+            cliente = gspread.authorize(creds)
+            planilha = cliente.open("FonoClinic_Data")
+            return planilha
     except Exception as e:
-        st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
-        return None
+            st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
+            return None
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

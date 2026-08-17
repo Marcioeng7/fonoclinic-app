@@ -3,9 +3,9 @@ from datetime import date, datetime, timedelta
 import io
 
 # Configuração da página - Layout amplo e responsivo para celular e computador
-st.set_page_config(page_title="FonoClinic v1.6 - Oficial Premium", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="FonoClinic v1.7 - Premium", page_icon="🩺", layout="wide")
 
-# Estilização CSS customizada para design chique, moderno e livre de poluição visual
+# Estilização CSS avançada para design chique, moderno e livre de poluição visual
 st.markdown("""
     <style>
     .reportview-container { background: #f8f9fa; }
@@ -30,7 +30,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🩺 FonoClinic v1.6 — Gestão Clínica & Prontuário Inteligente")
+st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
 st.info("💡 Modo de visualização ativo: Interface clínica premium com simulador de dados local.")
 
 # --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
@@ -56,15 +56,15 @@ def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes
 aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
     "📋 Painel de Atendimento",         # 1. Agenda e grade diária
     "📅 Marcar Horário",                # 2. Agendamento e recorrências
-    "👤 Admitir Paciente (Cadastro)",     # 3. Admissão completa com endereço e pais
+    "👤 Admitir Paciente (Cadastro)",     # 3. Admissão completa com escolha manual de perfis/tags
     "📝 Triagem Rápida",                # 4. Primeira queixa e sinais imediatos
     "📚 Anamnese Completa (Robusta)",    # 5. Questionário profundo do seu PDF + Flexibilidade de perguntas
-    "🩺 Sessão do Dia (Evolução)",       # 6. Registro em tempo real com contador automático de consultas
-    "🗂️ Central do Paciente (Prontuário)" # 7. Hub Unificado com histórico acumulado, linha do tempo e relatórios
+    "🩺 Sessão do Dia (Evolução)",       # 6. Registro adaptativo com contador e métricas de idade
+    "🗂️ Central do Paciente (Prontuário)" # 7. Hub Unificado com histórico acumulado e relatórios
 ])
 
 # =====================================================================
-# ABA 1: PAINEL DE ATENDIMENTO DIÁRIO (VISUAL REFORMULADO)
+# ABA 1: PAINEL DE ATENDIMENTO DIÁRIO (COM FILTRAGEM E EXIBIÇÃO DE IDADE)
 # =====================================================================
 with aba1:
     st.header("📋 Painel de Atendimento Diário")
@@ -77,16 +77,15 @@ with aba1:
     )
     data_base = st.date_input("Data de Referência:", value=date.today(), key="painel_data_ref")
     
-    # Massa de dados mockados com as novas tags de segmentação clínica
+    # Massa de dados mockados contendo a idade analítica para visualização
     dados_agenda_sheets = [
-        {"id_linha": "1", "paciente": "Arthur Silva", "perfil": "👶 Infantil (TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios lúdicos"},
-        {"id_linha": "2", "paciente": "Beatriz Souza", "perfil": "👶 Infantil (Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo central"},
-        {"id_linha": "3", "paciente": "Carlos Eduardo", "perfil": "🧓 Adulto (Pós-AVC)", "data": data_base.strftime("%d/%m/%Y"), "hora": "14:00", "status": "Faltou", "tipo_consulta": "Anamnese Clínica", "obs": "Acompanhante solicitou encaixe na recepção"}
+        {"id_linha": "1", "paciente": "Arthur Silva", "idade": "6 anos e 4 meses", "perfil": "👶 Infantil (TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios lúdicos"},
+        {"id_linha": "2", "paciente": "Beatriz Souza", "idade": "4 anos e 1 mês", "perfil": "👶 Infantil (Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo central"},
+        {"id_linha": "3", "paciente": "Carlos Eduardo", "idade": "62 anos", "perfil": "🧓 Adulto (Pós-AVC)", "data": data_base.strftime("%d/%m/%Y"), "hora": "14:00", "status": "Faltou", "tipo_consulta": "Anamnese Clínica", "obs": "Acompanhante solicitou encaixe na recepção"}
     ]
 
     st.subheader(f"📅 Consultas e Atendimentos Agendados")
     
-    # Área de exportação com visual limpo
     col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
         if st.button("⚙️ Compilar Grade (PDF)", key="btn_pdf_agenda_dia"):
@@ -98,13 +97,13 @@ with aba1:
         
     st.markdown("---")
 
-    # Renderização dos cards clínicos elegantes
+    # Geração dos cards clínicos com as idades visíveis
     for ag in dados_agenda_sheets:
         with st.container(border=True):
             col_c1, col_c2, col_c3 = st.columns(3)
             with col_c1:
                 st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')} <small style='background-color:#e7f5ff; color:#228be6; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold;'>{ag.get('perfil', '')}</small>", unsafe_allow_html=True)
-                st.caption(f"📅 Data: {ag.get('data', '')} | Tipo: **{ag.get('tipo_consulta', 'Atendimento')}**")
+                st.markdown(f"🎂 **Idade:** {ag.get('idade', '')} | Tipo: **{ag.get('tipo_consulta', 'Atendimento')}**")
                 if ag.get("obs", ""): 
                     st.info(f"📝 Nota de Recepção: {ag.get('obs', '')}")
             with col_c2:
@@ -119,7 +118,7 @@ with aba1:
                 if status_atual == "Agendado":
                     if st.button("✅ Concluir Sessão", key=f"concluir_{ag.get('id_linha')}", use_container_width=True):
                         st.success("Simulação: Atendimento gravado!")
-                    if st.button("🚨 Registrar Falta", key=f"falta_{ag.get('id_linha')}", use_container_width=True):
+                    if st.button("🚨 Registrar Falta", key=f"fata_{ag.get('id_linha')}", use_container_width=True):
                         st.error("Simulação: Falta computada!")
                 else:
                     if st.button("🗑️ Liberar Grade", key=f"excluir_{ag.get('id_linha')}", use_container_width=True):
@@ -158,14 +157,14 @@ with aba2:
                 st.success(f"🎉 Sucesso! Compromisso agendado para {p_nome} às {hora_agend}!")
 
 # =====================================================================
-# ABA 3: ADMITIR PACIENTE (CADASTRO PREMIUM COM FILIAÇÃO E ENDEREÇO)
+# ABA 3: ADMITIR PACIENTE (CADASTRO PREMIUM COM PERFIL HÍBRIDO)
 # =====================================================================
 with aba3:
     st.header("👤 Admissão e Cadastro de Novo Paciente")
-    st.write("Insira as informações cadastrais fundamentais. Os campos de endereço e filiação estão estruturados para fácil preenchimento.")
+    st.write("Insira as informações cadastrais fundamentais. Os campos de endereço, filiação e tags clínicas estão unificados abaixo.")
 
     with st.form("form_cadastro_paciente"):
-        st.markdown("### 🧬 1. Dados Pessoais e Filiação")
+        st.markdown("### 🧬 1. Dados Pessoais, Filiação e Perfil Clínico")
         with st.container(border=True):
             col_cad1, col_cad2 = st.columns(2)
             with col_cad1:
@@ -179,6 +178,17 @@ with aba3:
                 cad_pai = st.text_input("Nome Completo do Pai:", placeholder="Nome do pai")
                 cad_resp = st.text_input("Responsável Legal / Cuidador:", placeholder="Se menor de idade ou dependente")
                 cad_tel = st.text_input("Telefone de Contato (WhatsApp):", placeholder="(00) 00000-0000")
+        
+        # Recurso Híbrido: Escolha manual de categorias para cruzamento dinâmico
+        with st.container(border=True):
+            st.markdown("**🏷️ Classificação e Perfil de Atendimento:**")
+            st.caption("Selecione uma ou mais categorias para ativar os protocolos automáticos no prontuário:")
+            cad_perfis = st.multiselect(
+                "Categorias Diagnósticas / Clínicas:",
+                ["👶 Infantil", "🧓 Adulto/Idoso", "🧩 TEA (Autismo)", "🗣️ Apraxia de Fala", "🍽️ Disfagia (Deglutição)", "🧠 Afasia/Cognição", "🎙️ Voz/Motricidade Orofacial"],
+                default=["👶 Infantil", "🧩 TEA (Autismo)"],
+                key="cad_perfis_tags"
+            )
 
         st.markdown("### 📍 2. Endereço Residencial")
         with st.container(border=True):
@@ -207,7 +217,7 @@ with aba3:
         btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão", type="primary", use_container_width=True)
         if btn_salvar_cadastro:
             if cad_nome:
-                st.success(f"🎉 Registro de {cad_nome} salvo e estruturado localmente com sucesso!")
+                st.success(f"🎉 Registro de {cad_nome} salvo com sucesso com os perfis {', '.join(cad_perfis)}!")
             else:
                 st.warning("⚠️ Por favor, insira pelo menos o nome do paciente para testar a gravação.")
 
@@ -386,7 +396,7 @@ with aba5:
                 
             st.text_area("O que ele(a) mais gosta de brincar ou fazer quando está livre?", placeholder="Ex: Enfileirar carrinhos, blocos de montar...", key="pdf_gosta_brincar")
 
-    # --- 5. CAMPOS DINÂMICOS PARA NOVAS PERGUNTAS (REQUISITO EXCLUSIVO) ---
+    # --- 5. CAMPOS DINÂMICOS PARA NOVAS PERGUNTAS ---
     st.markdown("---")
     st.subheader("➕ Personalização de Protocolo (Perguntas Adicionais)")
     st.write("Insira novos questionamentos ou tópicos específicos que a Dra. Michelle queira incluir na hora:")
@@ -395,7 +405,7 @@ with aba5:
         col_add1, col_add2 = st.columns(2)
         with col_add1:
             pergunta_personalizada_1 = st.text_input("Título / Contexto da Nova Pergunta 1:", placeholder="Ex: Reação a ambientes barulhentos")
-            resposta_personalizada_1 = st.text_area("Resposta do Paciente ou Responsável (Perguntar 1):", placeholder="Registre os detalhes aqui...")
+            resposta_personalizada_1 = st.text_area("Resposta do Paciente ou Responsável (Pergunta 1):", placeholder="Registre os detalhes aqui...")
         with col_add2:
             pergunta_personalizada_2 = st.text_input("Título / Contexto da Nova Pergunta 2:", placeholder="Ex: Histórico do sono na infância")
             resposta_personalizada_2 = st.text_area("Resposta do Paciente ou Responsável (Pergunta 2):", placeholder="Registre os detalhes aqui...")
@@ -405,59 +415,105 @@ with aba5:
         st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial e campos personalizados foram salvos com sucesso!")
 
 # =====================================================================
-# ABA 6: SESSÃO DO DIA (ATENDIMENTO EM TEMPO REAL COM CONTADOR)
+# ABA 6: SESSÃO DO DIA (ATENDIMENTO ADAPTATIVO POR PERFIL COM IDADES)
 # =====================================================================
 with aba6:
     st.header("🩺 Registro de Atendimento de Sessão")
-    st.write("Espaço para a Dra. Michelle preencher em tempo real durante a consulta com o paciente.")
+    st.write("O formulário abaixo adapta suas perguntas automaticamente com base no perfil e idade do paciente.")
 
     paciente_sessao = st.selectbox(
         "Selecione o Paciente em Atendimento:", 
-        ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], 
+        ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"], 
         key="sessao_p_sel"
     )
 
-    # Simulação de contador histórico puxado do banco de dados local
+    # Motor de decisão: define qual questionário carregar na tela
+    perfil_automatico = "Infantil" if "Infantil" in paciente_sessao else "Adulto"
+
     historico_contagem = {
-        "Arthur Silva": {"total_consultas": 12, "ultimo_protocolo": "PEI - TEA Nível 1", "ultimo_recurso": "Massa de Modelar"},
-        "Beatriz Souza": {"total_consultas": 4, "ultimo_protocolo": "PROAF - Apraxia", "ultimo_recurso": "Cartões Visuais"},
-        "Carlos Eduardo": {"total_consultas": 21, "ultimo_protocolo": "Mapeamento de Afasia", "ultimo_recurso": "Espelho Clínico"}
+        "Arthur Silva (Infantil - TEA)": {"total_consultas": 12, "protocolo": "PEI - TEA Nível 1"},
+        "Beatriz Souza (Infantil - Apraxia)": {"total_consultas": 4, "protocolo": "PROAF - Apraxia"},
+        "Carlos Eduardo (Adulto - Pós-AVC)": {"total_consultas": 21, "protocolo": "Mapeamento de Afasia"}
     }
     
-    dados_paciente_atual = historico_contagem.get(paciente_sessao, {"total_consultas": 0, "ultimo_protocolo": "Nenhum", "ultimo_recurso": "Nenhum"})
-    nova_consulta_numero = dados_paciente_atual["total_consultas"] + 1
+    dados_p = historico_contagem.get(paciente_sessao, {"total_consultas": 0, "protocolo": "Geral"})
+    num_sessao = dados_p["total_consultas"] + 1
 
-    # Banner moderno com métricas automáticas e chiques
-    col_m1, col_m2, col_m3 = st.columns(3)
-    with col_m1:
-        st.metric(label="Número da Consulta Atual", value=f"Sessão Nº {nova_consulta_numero}")
-    with col_m2:
-        st.metric(label="Consultas Realizadas Até Aqui", value=f"{dados_paciente_atual['total_consultas']} sessões")
-    with col_m3:
-        st.metric(label="Data do Registro", value=date.today().strftime("%d/%m/%Y"))
+    # Mapeamento dinâmico de idades com meses para o público infantil
+    historico_idades = {
+        "Arthur Silva (Infantil - TEA)": "6 anos e 4 meses (Nasc: 12/04/2020)",
+        "Beatriz Souza (Infantil - Apraxia)": "4 anos e 1 mês (Nasc: 28/08/2022)",
+        "Carlos Eduardo (Adulto - Pós-AVC)": "62 anos (Nasc: 05/01/1964)"
+    }
+    idade_paciente_atual = historico_idades.get(paciente_sessao, "Não Informada")
 
-    st.markdown("---")
+    # Banner de métricas premium atualizado com 4 colunas chiques
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+    with col_m1: st.metric("Atendimento Atual", f"Sessão Nº {num_sessao}")
+    with col_m2: st.metric("Idade do Paciente", f"🎂 {idade_paciente_atual}")
+    with col_m3: st.metric("Perfil Identificado", f"✨ {perfil_automatico}")
+    with col_m4: st.metric("Data", date.today().strftime("%d/%m/%Y"))
 
-    with st.form("form_sessao_dia"):
+    # Alertas Visuais de Segurança Clínica com base no Perfil
+    if perfil_automatico == "Adulto":
+        st.error("⚠️ **ALERTA CLÍNICO (DISFAGIA/AFASIA):** Monitore sinais de penetração laríngea, tosse reflexa e umidade vocal após deglutições.")
+    else:
+        st.info("🎯 **FOCO TERAPÊUTICO (PEI/INFANTIL):** Priorize engajamento lúdico, contato visual sustentado e reforço positivo imediato.")
+
+    # Permitir que a Dra. Michelle force a troca de perfil se quiser
+    perfil_escolhido = st.radio("Deseja alterar manualmente o formulário desta sessão?", ["Manter Automático", "Forçar Fluxo Infantil/TEA", "Forçar Fluxo Adulto/Disfagia/Afasia"], horizontal=True)
+    
+    if "Infantil" in perfil_escolhido or (perfil_escolhido == "Manter Automático" and perfil_automatico == "Infantil"):
+        fluxo_ativo = "Infantil"
+    else:
+        fluxo_ativo = "Adulto"
+
+    with st.form("form_sessao_dia_dinamico"):
         st.subheader("📝 Mapeamento Técnico da Consulta")
         
         col_s1, col_s2 = st.columns(2)
         with col_s1:
-            protocolo_utilizado = st.text_input("Qual Protocolo / Abordagem Aplicada hoje?", value=dados_paciente_atual["ultimo_protocolo"], placeholder="Ex: PEI, ABA, Terapia Fonológica...")
-            recursos_utilizados = st.multiselect("Quais Recursos Lúdicos ou Clínicos foram usados?", ["Espelho", "Massa de Modelar", "Livros Infantis", "Jogos de Tabuleiro", "Software Auditivo", "Cartões de Nomeação"], default=[dados_paciente_atual["ultimo_recurso"]])
+            protocolo_utilizado = st.text_input("Protocolo / Abordagem Aplicada hoje:", value=dados_p["protocolo"])
+            recursos_utilizados = st.multiselect("Quais Recursos Clínicos foram usados?", ["Espelho", "Massa de Modelar", "Livros Infantis", "Jogos de Tabuleiro", "Software Auditivo", "Cartões de Nomeação"])
         with col_s2:
-            nivel_evolucao = st.select_slider("Nível de Evolução Percebido nesta Sessão:", options=["Regressão/Crise", "Estável/Sem Mudanças", "Evolução Gradual c/ Apoio", "Atingiu Alvo de Forma Independente"], value="Evolução Gradual c/ Apoio")
-            intercorrencia_sessao = st.radio("Houve alguma Intercorrência / Recusa Severa?", ["Não", "Sim (Descrever nas notas abaixo)"], horizontal=True)
+            nivel_evolucao = st.select_slider("Evolução Percebida hoje:", options=["Regressão/Crise", "Estável", "Evolução Gradual", "Independente"])
 
-        st.subheader("🧠 Notas Clínicas Descritivas, Observações e Acompanhamento")
-        observacoes_dia = st.text_area("Descreva detalhadamente o comportamento, fala, deglutição e as respostas do paciente hoje:", height=180, placeholder="Ex: Paciente iniciou a sessão agitado com recusa ao espelho, mas regulou após introdução da massa de modelar...")
+        # --- EXCLUSIVO FLUXO INFANTIL / TEA ---
+        if fluxo_ativo == "Infantil":
+            st.markdown("<p style='color:#007bff; font-weight:bold;'>🎯 Acompanhamento de Metas do PEI (Infantil)</p>", unsafe_allow_html=True)
+            with st.container(border=True):
+                col_pei1, col_pei2 = st.columns(2)
+                with col_pei1:
+                    st.select_slider("Meta 1 (Linguagem Expressiva - Fonemas):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Com Apoio", key="hub_pei_1")
+                with col_pei2:
+                    st.select_slider("Meta 2 (Socioemocional - Contato Visual):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Em Introdução", key="hub_pei_2")
         
-        proxima_conduta = st.text_input("Planejamento de Conduta para a Próxima Consulta:", placeholder="Ex: Retirar apoio visual e testar fixação fonológica...")
+        # --- EXCLUSIVO FLUXO ADULTO / DISFAGIA / AFASIA ---
+        else:
+            st.markdown("<p style='color:#e64980; font-weight:bold;'>🍽️ Gerenciamento de Risco e Linguagem (Adulto/Idoso)</p>", unsafe_allow_html=True)
+            with st.container(border=True):
+                col_ad1, col_ad2 = st.columns(2)
+                with col_ad1:
+                    st.checkbox("Sinais de Penetração/Aspiração (Tosse/Engasgo com Líquidos)", key="hub_chk_tosse")
+                    st.checkbox("Voz Molhada após Deglutição", key="hub_chk_voz_molhada")
+                with col_ad2:
+                    st.checkbox("Presença de Anomia (Dificuldade de encontrar palavras)", key="hub_chk_anomia")
+                    st.selectbox("Consistência Segura Testada hoje:", ["Nenhuma", "Zero (Líquidos Finos)", "Nível 4 (Pastoso)", "Nível 7 (Sólidos)"], key="hub_sel_consist")
+
+        st.subheader("🧠 Notas Clínicas Descritivas")
+        observacoes_dia = st.text_area("Descreva detalhadamente as respostas do paciente hoje:", height=150)
+        proxima_conduta = st.text_input("Conduta Planejada para a Próxima Consulta:")
 
         st.markdown("---")
-        btn_gravar_sessao = st.form_submit_button("💾 Finalizar Sessão e Enviar para o Histórico", type="primary", use_container_width=True)
-        if btn_gravar_sessao:
-            st.success(f"✅ Sessão Nº {nova_consulta_numero} registrada com sucesso em {date.today().strftime('%d/%m/%Y')}! Dados consolidados na linha do tempo.")
+        col_btn_s1, col_btn_s2 = st.columns(2)
+        with col_btn_s1:
+            btn_gravar_sessao = st.form_submit_button("💾 Finalizar Atendimento e Enviar para o Prontuário", type="primary", use_container_width=True)
+            if btn_gravar_sessao:
+                st.success(f"✅ Atendimento Nº {num_sessao} processado com sucesso!")
+        with col_btn_s2:
+            pdf_quick_buf = io.BytesIO()
+            pdf_quick_buf.write(b"Comprovante de Evolucao de Sessao Avulsa")
+            st.download_button("🖨️ Imprimir Apenas esta Sessão", data=pdf_quick_buf.getvalue(), file_name=f"Evolucao_Sessao_{num_sessao}.pdf", mime="application/pdf", use_container_width=True)
 
 # =====================================================================
 # ABA 7: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)
@@ -480,11 +536,16 @@ with aba7:
     with sub_hub_ficha:
         st.subheader("📋 Informações Consolidadas do Paciente")
         
+        # Mapeamento dinâmico para a simulação do painel central com as idades corrigidas
+        idade_hub = "6 anos e 4 meses" if "Arthur" in paciente_hub_ativo else ("4 anos e 1 mês" if "Beatriz" in paciente_hub_ativo else "62 anos")
+        nasc_hub = "12/04/2020" if "Arthur" in paciente_hub_ativo else ("28/08/2022" if "Beatriz" in paciente_hub_ativo else "05/01/1964")
+
         with st.container(border=True):
             st.markdown(f"### **Paciente:** {paciente_hub_ativo}")
             col_f1, col_f2 = st.columns(2)
             with col_f1:
-                st.markdown("**Filiação:** Dra. Michelle Neves (Mãe Simulada) / Pedro Silva (Pai Simulado)")
+                st.markdown(f"🎂 **Idade Cronológica:** {idade_hub} *(Data de Nasc: {nasc_hub})*")
+                st.markdown("**Filiação:** Dra. Michelle Neves (Mãe) / Pedro Silva (Pai)")
                 st.markdown("**Endereço:** Rua das Orquídeas, 456, Ap 201 - Barra da Tijuca, Rio de Janeiro/RJ")
             with col_f2:
                 st.markdown("**Contato Principal:** (21) 99999-8888")

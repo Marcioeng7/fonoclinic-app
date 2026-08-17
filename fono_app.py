@@ -7,9 +7,6 @@ from google.oauth2.service_account import Credentials
 # CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
 
-# =====================================================================
-# MOTOR DE CONEXÃO PREMIUM RECONSTRUTOR COM SEGURANÇA
-# =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -17,25 +14,17 @@ def conectar_google_sheets():
             "https://googleapis.com",
             "https://googleapis.com"
         ]
+
         
-        # Puxa o dicionário estruturado e limpo diretamente do Secrets
-        credenciais_dict = dict(st.secrets["gspread_credentials"])
-        
-        # Garante a remoção de aspas ou espaços fantasmas gerados no parser
-        pk = str(credenciais_dict["private_key"]).strip()
-        if "\\n" in pk:
-            pk = pk.replace("\\n", "\n")
-            
-        credenciais_dict["private_key"] = pk
-        
-        # Inicializa a autenticação segura do Google
-        creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
+        # Lê o arquivo JSON local diretamente, ignorando o interpretador do Streamlit Secrets
+        creds = Credentials.from_service_account_file("google_key.json", scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")
         return planilha
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
+
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

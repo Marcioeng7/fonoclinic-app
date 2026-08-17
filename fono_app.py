@@ -1,3 +1,10 @@
+import streamlit as st
+from datetime import date, datetime, timedelta
+import io
+import gspread
+from google.oauth2.service_account import Credentials
+
+# O DECORADOR E A FUNÇÃO DEVEM VIR DEPOIS DOS IMPORTS:
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -24,6 +31,7 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
+
 
 
 # Inicializa a conexão global do banco de dados na inicialização

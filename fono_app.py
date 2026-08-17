@@ -31,7 +31,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
-st.info("💡 Modo de visualização ativo: Interface clínica premium com simulador de dados local.")
+st.info("💡 Modo de visualização active: Interface clínica premium com simulador de dados local.")
 
 # --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
 horarios_disponiveis = []
@@ -59,7 +59,7 @@ aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
     "👤 Admitir Paciente (Cadastro)",     # 3. Admissão completa com escolha manual de perfis/tags
     "📝 Triagem Rápida",                # 4. Primeira queixa e sinais imediatos
     "📚 Anamnese Completa (Robusta)",    # 5. Questionário profundo do seu PDF + Flexibilidade de perguntas
-    "🩺 Sessão do Dia (Evolução)",       # 6. Registro adaptativo com contador e métricas de idade
+    "🩺 Sessão do Dia (Evolução)",       # 6. Registro adaptativo CORRIGIDO sem erros de download
     "🗂️ Central do Paciente (Prontuário)" # 7. Hub Unificado com histórico acumulado e relatórios
 ])
 
@@ -118,7 +118,7 @@ with aba1:
                 if status_atual == "Agendado":
                     if st.button("✅ Concluir Sessão", key=f"concluir_{ag.get('id_linha')}", use_container_width=True):
                         st.success("Simulação: Atendimento gravado!")
-                    if st.button("🚨 Registrar Falta", key=f"fata_{ag.get('id_linha')}", use_container_width=True):
+                    if st.button("🚨 Registrar Falta", key=f"falta_{ag.get('id_linha')}", use_container_width=True):
                         st.error("Simulação: Falta computada!")
                 else:
                     if st.button("🗑️ Liberar Grade", key=f"excluir_{ag.get('id_linha')}", use_container_width=True):
@@ -175,7 +175,7 @@ with aba3:
             
             with col_cad2:
                 cad_mae = st.text_input("Nome Completo da Mãe:", placeholder="Nome da mãe")
-                cad_pai = st.text_input("Nome Completo do Pai:", placeholder="Nome do pai")
+                cad_pai = st.text_input("Nome Completo do Pai:", placeholder="Nome da pai")
                 cad_resp = st.text_input("Responsável Legal / Cuidador:", placeholder="Se menor de idade ou dependente")
                 cad_tel = st.text_input("Telefone de Contato (WhatsApp):", placeholder="(00) 00000-0000")
         
@@ -468,6 +468,7 @@ with aba6:
     else:
         fluxo_ativo = "Adulto"
 
+    # Abertura do Formulário Clínico
     with st.form("form_sessao_dia_dinamico"):
         st.subheader("📝 Mapeamento Técnico da Consulta")
         
@@ -505,15 +506,21 @@ with aba6:
         proxima_conduta = st.text_input("Conduta Planejada para a Próxima Consulta:")
 
         st.markdown("---")
-        col_btn_s1, col_btn_s2 = st.columns(2)
-        with col_btn_s1:
-            btn_gravar_sessao = st.form_submit_button("💾 Finalizar Atendimento e Enviar para o Prontuário", type="primary", use_container_width=True)
-            if btn_gravar_sessao:
-                st.success(f"✅ Atendimento Nº {num_sessao} processado com sucesso!")
-        with col_btn_s2:
-            pdf_quick_buf = io.BytesIO()
-            pdf_quick_buf.write(b"Comprovante de Evolucao de Sessao Avulsa")
-            st.download_button("🖨️ Imprimir Apenas esta Sessão", data=pdf_quick_buf.getvalue(), file_name=f"Evolucao_Sessao_{num_sessao}.pdf", mime="application/pdf", use_container_width=True)
+        btn_gravar_sessao = st.form_submit_button("💾 Finalizar Atendimento e Enviar para o Prontuário", type="primary", use_container_width=True)
+        if btn_gravar_sessao:
+            st.success(f"✅ Atendimento Nº {num_sessao} processado com sucesso!")
+
+    # POSICIONADO FORA DO st.form PARA BLINDAGEM CONTRA EXCEÇÕES
+    st.markdown("### 🖨️ Documentação da Sessão")
+    pdf_quick_buf = io.BytesIO()
+    pdf_quick_buf.write(b"Comprovante de Evolucao de Sessao Avulsa")
+    st.download_button(
+        "🖨️ Exportar e Imprimir Relatório Desta Sessão", 
+        data=pdf_quick_buf.getvalue(), 
+        file_name=f"Evolucao_Sessao_{num_sessao}.pdf", 
+        mime="application/pdf", 
+        use_container_width=True
+    )
 
 # =====================================================================
 # ABA 7: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)

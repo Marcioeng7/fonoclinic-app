@@ -20,13 +20,13 @@ def conectar_google_sheets():
             "https://googleapis.com"
         ]
         
-        # Lê a credencial linear pura do Streamlit Secrets
+        # LÊ A CHAVE CORRETA QUE ESTÁ SALVA NAS SECRETS DO STREAMLIT
         json_string = st.secrets["gspread_json"]
         
-        # Converte a string em dicionário nativo decodificando os caracteres \n
+        # Converte a string linear limpa em um dicionário nativo do Python
         credenciais_dict = json.loads(json_string)
         
-        # Realiza a autenticação oficial direta do gspread
+        # Realiza a autenticação direta com o Google
         creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")
@@ -34,7 +34,6 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
-
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

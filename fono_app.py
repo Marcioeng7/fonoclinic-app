@@ -3,9 +3,9 @@ from datetime import date, datetime, timedelta
 import io
 
 # Configuração da página - Layout amplo e responsivo para celular e computador
-st.set_page_config(page_title="FonoClinic v1.6 - Premium", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="FonoClinic v1.6 - Oficial Premium", page_icon="🩺", layout="wide")
 
-# Estilização CSS customizada para deixar o visual chique, moderno e com fontes limpas
+# Estilização CSS customizada para design chique, moderno e livre de poluição visual
 st.markdown("""
     <style>
     .reportview-container { background: #f8f9fa; }
@@ -30,7 +30,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🩺 FonoClinic v1.6 — Sistema de Gestão e Prontuário")
+st.title("🩺 FonoClinic v1.6 — Gestão Clínica & Prontuário Inteligente")
 st.info("💡 Modo de visualização ativo: Interface clínica premium com simulador de dados local.")
 
 # --- MOTOR DE GERAÇÃO DE HORÁRIOS FIXOS (08:00 às 20:00 - 10 em 10 min) ---
@@ -52,14 +52,15 @@ def pergunta_sim_nao(label, key, info_adicional=False, label_adicional="Detalhes
             detalhe = st.text_input(f"{label_adicional}", key=f"{key}_det")
     return resposta, detalhe
 
-# AS 6 ABAS OFICIAIS DO SOFTWARE REORDENADAS POR FLUXO CRONOLÓGICO CLÍNICO
-aba1, aba2, aba3, aba4, aba5, aba6 = st.tabs([
-    "📋 Painel de Atendimento",         # 1. Agenda do dia
-    "📅 Marcar Horário",                # 2. Agendar novas consultas
-    "👤 Admitir Paciente (Cadastro)",     # 3. Cadastro completo com endereço/pais
-    "📝 Triagem Rápida",                # 4. Primeira queixa rápida
-    "📚 Anamnese Completa (Robusta)",    # 5. Todo o questionário do seu PDF integrado!
-    "🗂️ Central do Paciente (Prontuário)" # 6. Hub Unificado com Evoluções, Histórico e Laudos
+# AS 7 ABAS OFICIAIS DO SOFTWARE REORDENADAS POR FLUXO CRONOLÓGICO CLÍNICO
+aba1, aba2, aba3, aba4, aba5, aba6, aba7 = st.tabs([
+    "📋 Painel de Atendimento",         # 1. Agenda e grade diária
+    "📅 Marcar Horário",                # 2. Agendamento e recorrências
+    "👤 Admitir Paciente (Cadastro)",     # 3. Admissão completa com endereço e pais
+    "📝 Triagem Rápida",                # 4. Primeira queixa e sinais imediatos
+    "📚 Anamnese Completa (Robusta)",    # 5. Questionário profundo do seu PDF + Flexibilidade de perguntas
+    "🩺 Sessão do Dia (Evolução)",       # 6. Registro em tempo real com contador automático de consultas
+    "🗂️ Central do Paciente (Prontuário)" # 7. Hub Unificado com histórico acumulado, linha do tempo e relatórios
 ])
 
 # =====================================================================
@@ -86,7 +87,7 @@ with aba1:
     st.subheader(f"📅 Consultas e Atendimentos Agendados")
     
     # Área de exportação com visual limpo
-    col_exp1, col_exp2 = st.columns([1, 4])
+    col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
         if st.button("⚙️ Compilar Grade (PDF)", key="btn_pdf_agenda_dia"):
             st.toast("Grade compilada no simulador com sucesso!", icon="⚙️")
@@ -100,7 +101,7 @@ with aba1:
     # Renderização dos cards clínicos elegantes
     for ag in dados_agenda_sheets:
         with st.container(border=True):
-            col_c1, col_c2, col_c3 = st.columns([2, 1, 1])
+            col_c1, col_c2, col_c3 = st.columns(3)
             with col_c1:
                 st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')} <small style='background-color:#e7f5ff; color:#228be6; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold;'>{ag.get('perfil', '')}</small>", unsafe_allow_html=True)
                 st.caption(f"📅 Data: {ag.get('data', '')} | Tipo: **{ag.get('tipo_consulta', 'Atendimento')}**")
@@ -181,7 +182,7 @@ with aba3:
 
         st.markdown("### 📍 2. Endereço Residencial")
         with st.container(border=True):
-            col_end1, col_end2, col_end3 = st.columns([3, 1, 1])
+            col_end1, col_end2, col_end3 = st.columns(3)
             with col_end1:
                 cad_rua = st.text_input("Logradouro (Rua, Avenida, etc.):", placeholder="Ex: Rua das Flores")
             with col_end2:
@@ -189,7 +190,7 @@ with aba3:
             with col_end3:
                 cad_compl = st.text_input("Complemento:", placeholder="Ex: Ap 102")
 
-            col_end4, col_end5, col_end6 = st.columns([2, 2, 1])
+            col_end4, col_end5, col_end6 = st.columns(3)
             with col_end4:
                 cad_bairro = st.text_input("Bairro:", placeholder="Ex: Copacabana")
             with col_end5:
@@ -305,7 +306,7 @@ with aba5:
                 st.radio("Como foi a alimentação inicial?", ["", "Mamou no peito", "Fórmula", "Ambos"], key="pdf_amamentacao")
                 st.radio("Usa ou já usou bicos artificiais (chupeta, mamadeira)?", ["", "Sim", "Não"], horizontal=True, key="pdf_bicos")
 
-    # --- 2. COGNIÇÃO E MARCOS PEDAGÓGICOS (CONTINUAÇÃO) ---
+    # --- 2. COGNIÇÃO E MARCOS PEDAGÓGICOS ---
     with sub_aba_cognitiva:
         st.subheader("Mapeamento Pedagógico e Habilidades Cognitivas Básicas")
         st.write("Marque o desempenho cognitivo observado ou relatado pela família:")
@@ -318,7 +319,7 @@ with aba5:
                 st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
             with col_cg2:
                 st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
                 st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
 
         with st.container(border=True):
@@ -385,28 +386,97 @@ with aba5:
                 
             st.text_area("O que ele(a) mais gosta de brincar ou fazer quando está livre?", placeholder="Ex: Enfileirar carrinhos, blocos de montar...", key="pdf_gosta_brincar")
 
-        st.markdown("---")
-        if st.button("💾 Consolidar Anamnese Completa no Prontuário", key="btn_salvar_ana_completa_pdf", type="primary", use_container_width=True):
-            st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial foi vinculado a {paciente_ana_pdf} no prontuário!")
+    # --- 5. CAMPOS DINÂMICOS PARA NOVAS PERGUNTAS (REQUISITO EXCLUSIVO) ---
+    st.markdown("---")
+    st.subheader("➕ Personalização de Protocolo (Perguntas Adicionais)")
+    st.write("Insira novos questionamentos ou tópicos específicos que a Dra. Michelle queira incluir na hora:")
+    
+    with st.container(border=True):
+        col_add1, col_add2 = st.columns(2)
+        with col_add1:
+            pergunta_personalizada_1 = st.text_input("Título / Contexto da Nova Pergunta 1:", placeholder="Ex: Reação a ambientes barulhentos")
+            resposta_personalizada_1 = st.text_area("Resposta do Paciente ou Responsável (Perguntar 1):", placeholder="Registre os detalhes aqui...")
+        with col_add2:
+            pergunta_personalizada_2 = st.text_input("Título / Contexto da Nova Pergunta 2:", placeholder="Ex: Histórico do sono na infância")
+            resposta_personalizada_2 = st.text_area("Resposta do Paciente ou Responsável (Pergunta 2):", placeholder="Registre os detalhes aqui...")
+
+    st.markdown("---")
+    if st.button("💾 Consolidar Anamnese Completa no Prontuário", key="btn_salvar_ana_completa_pdf", type="primary", use_container_width=True):
+        st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial e campos personalizados foram salvos com sucesso!")
 
 # =====================================================================
-# ABA 6: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)
+# ABA 6: SESSÃO DO DIA (ATENDIMENTO EM TEMPO REAL COM CONTADOR)
 # =====================================================================
 with aba6:
+    st.header("🩺 Registro de Atendimento de Sessão")
+    st.write("Espaço para a Dra. Michelle preencher em tempo real durante a consulta com o paciente.")
+
+    paciente_sessao = st.selectbox(
+        "Selecione o Paciente em Atendimento:", 
+        ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], 
+        key="sessao_p_sel"
+    )
+
+    # Simulação de contador histórico puxado do banco de dados local
+    historico_contagem = {
+        "Arthur Silva": {"total_consultas": 12, "ultimo_protocolo": "PEI - TEA Nível 1", "ultimo_recurso": "Massa de Modelar"},
+        "Beatriz Souza": {"total_consultas": 4, "ultimo_protocolo": "PROAF - Apraxia", "ultimo_recurso": "Cartões Visuais"},
+        "Carlos Eduardo": {"total_consultas": 21, "ultimo_protocolo": "Mapeamento de Afasia", "ultimo_recurso": "Espelho Clínico"}
+    }
+    
+    dados_paciente_atual = historico_contagem.get(paciente_sessao, {"total_consultas": 0, "ultimo_protocolo": "Nenhum", "ultimo_recurso": "Nenhum"})
+    nova_consulta_numero = dados_paciente_atual["total_consultas"] + 1
+
+    # Banner moderno com métricas automáticas e chiques
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        st.metric(label="Número da Consulta Atual", value=f"Sessão Nº {nova_consulta_numero}")
+    with col_m2:
+        st.metric(label="Consultas Realizadas Até Aqui", value=f"{dados_paciente_atual['total_consultas']} sessões")
+    with col_m3:
+        st.metric(label="Data do Registro", value=date.today().strftime("%d/%m/%Y"))
+
+    st.markdown("---")
+
+    with st.form("form_sessao_dia"):
+        st.subheader("📝 Mapeamento Técnico da Consulta")
+        
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            protocolo_utilizado = st.text_input("Qual Protocolo / Abordagem Aplicada hoje?", value=dados_paciente_atual["ultimo_protocolo"], placeholder="Ex: PEI, ABA, Terapia Fonológica...")
+            recursos_utilizados = st.multiselect("Quais Recursos Lúdicos ou Clínicos foram usados?", ["Espelho", "Massa de Modelar", "Livros Infantis", "Jogos de Tabuleiro", "Software Auditivo", "Cartões de Nomeação"], default=[dados_paciente_atual["ultimo_recurso"]])
+        with col_s2:
+            nivel_evolucao = st.select_slider("Nível de Evolução Percebido nesta Sessão:", options=["Regressão/Crise", "Estável/Sem Mudanças", "Evolução Gradual c/ Apoio", "Atingiu Alvo de Forma Independente"], value="Evolução Gradual c/ Apoio")
+            intercorrencia_sessao = st.radio("Houve alguma Intercorrência / Recusa Severa?", ["Não", "Sim (Descrever nas notas abaixo)"], horizontal=True)
+
+        st.subheader("🧠 Notas Clínicas Descritivas, Observações e Acompanhamento")
+        observacoes_dia = st.text_area("Descreva detalhadamente o comportamento, fala, deglutição e as respostas do paciente hoje:", height=180, placeholder="Ex: Paciente iniciou a sessão agitado com recusa ao espelho, mas regulou após introdução da massa de modelar...")
+        
+        proxima_conduta = st.text_input("Planejamento de Conduta para a Próxima Consulta:", placeholder="Ex: Retirar apoio visual e testar fixação fonológica...")
+
+        st.markdown("---")
+        btn_gravar_sessao = st.form_submit_button("💾 Finalizar Sessão e Enviar para o Histórico", type="primary", use_container_width=True)
+        if btn_gravar_sessao:
+            st.success(f"✅ Sessão Nº {nova_consulta_numero} registrada com sucesso em {date.today().strftime('%d/%m/%Y')}! Dados consolidados na linha do tempo.")
+
+# =====================================================================
+# ABA 7: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)
+# =====================================================================
+with aba7:
     st.header("🗂️ Central Unificada do Paciente & Prontuário Clínico")
-    st.write("Hub gerencial completo. Selecione o prontuário para visualizar históricos, registrar evoluções e emitir relatórios.")
+    st.write("Hub gerencial completo. Selecione o prontuário para visualizar históricos acumulados, linhas do tempo e emitir relatórios.")
 
     lista_central_pacientes = ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"]
     paciente_hub_ativo = st.selectbox("Selecione o Prontuário Ativo para Consulta:", lista_central_pacientes, key="hub_p_ativo")
     
     # Sub-abas de visualização e ação integradas em uma única tela
-    sub_hub_ficha, sub_hub_evolucao, sub_hub_laudos = st.tabs([
-        "👤 Ficha Médica & Histórico Integrado", 
-        "🎯 Evolução Ágil & Acompanhamento", 
+    sub_hub_ficha, sub_hub_linha_tempo, sub_hub_laudos = st.tabs([
+        "👤 Ficha Médica & Cadastro", 
+        "📈 Linha do Tempo & Histórico Acumulado", 
         "🖨️ Gerador de Relatórios & Impressão"
     ])
 
-    # --- TAB 1: FICHA MÉDICA E HISTÓRICO INTEGRADO ---
+    # --- TAB 1: FICHA MÉDICA E CADASTRO ---
     with sub_hub_ficha:
         st.subheader("📋 Informações Consolidadas do Paciente")
         
@@ -423,39 +493,26 @@ with aba6:
         with st.container(border=True):
             st.subheader("📚 Resumo Analítico da Anamnese e Triagem")
             st.write("Dados extraídos dos questionários preenchidos anteriormente:")
-            
             st.markdown("- **Queixa Principal:** Atraso no desenvolvimento da fala e episódios de seletividade alimentar marcante.")
             st.markdown("- **Fatores Neurocomportamentais:** Apresenta estereotipias motoras sutis e ecolalia imediata em momentos de frustração.")
             st.markdown("- **Autonomia Diária:** Em fase de desfralde assistido; atende a comandos funcionais simples com apoio visual.")
 
-    # --- TAB 2: EVOLUÇÃO ÁGIL E ACOMPANHAMENTO DIÁRIO ---
-    with sub_hub_evolucao:
-        st.subheader("⚡ Registro de Evolução em 1 Clique (Terapia Lúdica)")
-        st.caption("Marque o desempenho observado durante a sessão de forma rápida:")
+    # --- TAB 2: LINHA DO TEMPO E HISTÓRICO ACUMULADO ---
+    with sub_hub_linha_tempo:
+        st.subheader("📈 Histórico Cronológico de Evolução (Linha do Tempo)")
+        st.caption("Abaixo constam todos os registros históricos retroativos acumulados por data e número de atendimento:")
         
-        col_t1, col_t2, col_t3, col_t4 = st.columns(4)
-        if col_t1.button("🎯 Alvo Atingido", use_container_width=True, type="primary", key="hub_btn_alvo"):
-            st.toast("Adicionado: Alvo atingido!", icon="🎯")
-        if col_t2.button("👁️ C/ Apoio Visual", use_container_width=True, key="hub_btn_ap_visual"):
-            st.toast("Adicionado: Apoio visual utilizado!", icon="👁️")
-        if col_t3.button("🔄 C/ Apoio Verbal", use_container_width=True, key="hub_btn_ap_verbal"):
-            st.toast("Adicionado: Apoio verbal utilizado!", icon="🔄")
-        if col_t4.button("⚠️ Recusa / Choro", use_container_width=True, key="hub_btn_recusa"):
-            st.toast("Adicionado: Registro de recusa!", icon="⚠️")
-
         with st.container(border=True):
-            st.subheader("📝 Anotações de Acompanhamento Extra")
-            hub_engajamento = st.segmented_control("Nível de Engajamento na Sessão:", ["Baixo", "Adequado", "Excelente"], default="Adequado")
-            hub_recursos = st.multiselect("Recursos Utilizados:", ["Massa de Modelar", "Jogos de Tabuleiro", "Espelho", "Cartões Visuais", "Brinquedo Simbólico"], default=["Massa de Modelar", "Cartões Visuais"])
-            hub_nota_livre = st.text_area("Notas Clínicas Descritivas (Acompanhamento Livre):", placeholder="Digite aqui observações detalhadas sobre a evolução clínica ou comportamental da sessão...")
-            hub_conduta = st.selectbox("Conduta Próxima Sessão:", ["Manter Planejamento Atual", "Subir Nível de Desafio Fonológico", "Introduzir Novos Estímulos Auditivos"])
-
-        col_ev_b1, col_ev_b2 = st.columns(2)
-        with col_ev_b1:
-            if st.button("💾 Gravar Evolução na Linha do Tempo", type="primary", use_container_width=True):
-                st.success("✅ Evolução clínica arquivada com sucesso no prontuário!")
-        with col_ev_b2:
-            st.file_uploader("🎥 Anexar Mídia Rápida à Sessão (Áudio/Vídeo):", type=["mp3", "wav", "mp4"], key="hub_uploader")
+            st.markdown("#### **Sessão Nº 12 — 09/08/2026**")
+            st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Massa de Modelar | **Evolução:** Evolução Gradual c/ Apoio")
+            st.write("*Evolução Descritiva:* Apresentou boa fixação ocular, realizou os comandos de pareamento com facilidade.")
+            st.caption("Registrado por Dra. Michelle Neves")
+            
+        with st.container(border=True):
+            st.markdown("#### **Sessão Nº 11 — 02/08/2026**")
+            st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Cartões de Nomeação | **Evolução:** Estável")
+            st.write("*Evolução Descritiva:* Inicialmente focado nos estímulos visuais, manteve o contato verbal por 2 segundos consecutivos.")
+            st.caption("Registrado por Dra. Michelle Neves")
 
     # --- TAB 3: GERADOR DE RELATÓRIOS E IMPRESSÃO ---
     with sub_hub_laudos:
@@ -485,7 +542,7 @@ with aba6:
             st.download_button(
                 "🖨️ Gerar PDF para Download e Impressão", 
                 data=pdf_hub_buf.getvalue(), 
-                file_name=f"Relatorio_{paciente_hub_ativo.split(' ')[0]}.pdf", 
+                file_name=f"Relatorio_{paciente_hub_ativo.replace(' ', '_')}.pdf", 
                 mime="application/pdf",
                 use_container_width=True
             )

@@ -1,10 +1,3 @@
-import streamlit as st
-from datetime import date, datetime, timedelta
-import io
-import gspread
-from google.oauth2.service_account import Credentials
-
-# O DECORADOR E A FUNÇÃO DEVEM VIR DEPOIS DOS IMPORTS:
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -13,17 +6,17 @@ def conectar_google_sheets():
             "https://googleapis.com"
         ]
         
-        # Puxa os dados cadastrais normais
+        # Puxa o dicionário estruturado e limpo diretamente do Secrets
         credenciais_dict = dict(st.secrets["gspread_credentials"])
         
-        # Puxa o miolo da chave de forma limpa e reconstrói o cabeçalho oficial do Google
-        miolo_chave = st.secrets["gspread_key"]["p1"]
-        chave_reconstruida = f"-----BEGIN PRIVATE KEY-----\n{miolo_chave}\n-----END PRIVATE KEY-----\n"
+        # Garante a remoção de aspas ou espaços fantasmas gerados no parser
+        pk = str(credenciais_dict["private_key"]).strip()
+        if "\\n" in pk:
+            pk = pk.replace("\\n", "\n")
+            
+        credenciais_dict["private_key"] = pk
         
-        # Injeta a chave montada com segurança dentro do dicionário de credenciais
-        credenciais_dict["private_key"] = chave_reconstruida
-        
-        # Faz a autenticação na API do Google
+        # Inicializa a autenticação segura do Google
         creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")
@@ -31,8 +24,6 @@ def conectar_google_sheets():
     except Exception as e:
         st.error(f"❌ Erro crítico de configuração/conexão com o Google Sheets: {e}")
         return None
-
-
 
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()

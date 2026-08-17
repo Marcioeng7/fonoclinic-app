@@ -7,6 +7,11 @@ from google.oauth2.service_account import Credentials
 # CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
 
+import json  # Certifique-se de que esta linha está no topo absoluto do arquivo!
+
+# =====================================================================
+# MOTOR DE CONEXÃO PREMIUM VIA PARSER JSON DIRETO (SEM ARQUIVOS LOCAIS)
+# =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -15,14 +20,13 @@ def conectar_google_sheets():
             "https://googleapis.com"
         ]
         
-        # Puxa as credenciais limpas do dicionário de Secrets do Streamlit
-        credenciais_dict = dict(st.secrets["gspread_credentials"])
+        # Lê a credencial linear pura do Streamlit Secrets
+        json_string = st.secrets["gspread_json"]
         
-        # Corrige as quebras de linha da chave privada direto na memória do servidor
-        pk = str(credenciais_dict["private_key"]).replace("\\n", "\n")
-        credenciais_dict["private_key"] = pk
+        # Converte a string em dicionário nativo decodificando os caracteres \n
+        credenciais_dict = json.loads(json_string)
         
-        # Realiza a autenticação oficial com os servidores do Google
+        # Realiza a autenticação oficial direta do gspread
         creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")

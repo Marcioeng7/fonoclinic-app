@@ -1,13 +1,3 @@
-import streamlit as st
-from datetime import date, datetime, timedelta
-import io
-import gspread
-from google.oauth2.service_account import Credentials
-import json  # Certifique-se de incluir esta linha no topo do arquivo
-
-# =====================================================================
-# MOTOR DE CONEXÃO REFORMULADO VIA PARSER JSON DIRETO
-# =====================================================================
 @st.cache_resource
 def conectar_google_sheets():
     try:
@@ -16,13 +6,17 @@ def conectar_google_sheets():
             "https://googleapis.com"
         ]
         
-        # Lê a credencial estruturada como texto linear puro do Streamlit Secrets
-        json_string = st.secrets["gspread_json"]
+        # Puxa os dados cadastrais normais
+        credenciais_dict = dict(st.secrets["gspread_credentials"])
         
-        # Converte a string limpa diretamente em dicionário Python nativo
-        credenciais_dict = json.loads(json_string)
+        # Puxa o miolo da chave de forma limpa e reconstrói o cabeçalho oficial do Google
+        miolo_chave = st.secrets["gspread_key"]["p1"]
+        chave_reconstruida = f"-----BEGIN PRIVATE KEY-----\n{miolo_chave}\n-----END PRIVATE KEY-----\n"
         
-        # Realiza a autenticação oficial sem passar pelo validador TOML do arquivo PEM
+        # Injeta a chave montada com segurança dentro do dicionário de credenciais
+        credenciais_dict["private_key"] = chave_reconstruida
+        
+        # Faz a autenticação na API do Google
         creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")

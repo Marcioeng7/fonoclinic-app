@@ -14,10 +14,16 @@ def conectar_google_sheets():
             "https://googleapis.com",
             "https://googleapis.com"
         ]
-
         
-        # Lê o arquivo JSON local diretamente, ignorando o interpretador do Streamlit Secrets
-        creds = Credentials.from_service_account_file("google_key.json", scopes=escopos)
+        # Puxa as credenciais limpas do dicionário de Secrets do Streamlit
+        credenciais_dict = dict(st.secrets["gspread_credentials"])
+        
+        # Corrige as quebras de linha da chave privada direto na memória do servidor
+        pk = str(credenciais_dict["private_key"]).replace("\\n", "\n")
+        credenciais_dict["private_key"] = pk
+        
+        # Realiza a autenticação oficial com os servidores do Google
+        creds = Credentials.from_service_account_info(credenciais_dict, scopes=escopos)
         cliente = gspread.authorize(creds)
         planilha = cliente.open("FonoClinic_Data")
         return planilha

@@ -1,16 +1,13 @@
 import streamlit as st
 from datetime import date, datetime, timedelta
 import io
-import gspread
-from google.oauth2.service_account import Credentials
+import json  # Certifique-se de que esta linha está no topo absoluto do arquivo!
 
 # CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
 
-import json  # Certifique-se de que esta linha está no topo absoluto do arquivo!
-
 # =====================================================================
-# MOTOR DE CONEXÃO PREMIUM VIA PARSER JSON DIRETO (SEM ARQUIVOS LOCAIS)
+# MOTOR DE CONEXÃO PREMIUM VIA DRIVER OFICIAL STREAMLIT (CORRIGIDO)
 # =====================================================================
 from streamlit_gsheets import GSheetsConnection
 
@@ -19,49 +16,42 @@ def conectar_google_sheets():
     try:
         # Inicializa a conexão oficial do Streamlit
         conn = st.connection("gsheets", type=GSheetsConnection)
-        
-        # Link do navegador da sua planilha Google Sheets
-        link_da_planilha = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?pli=1&gid=0#gid=0"
-        
-        # Lê a aba "Pacientes" informando o link explicitamente para o Streamlit
-        conn.read(spreadsheet=link_da_planilha, worksheet="Pacientes", ttl="10m")
-        
-        # Retorna a conexão validada para o resto do app
         return conn
     except Exception as e:
         st.error(f"❌ Erro na conexão oficial do Streamlit: {e}")
         return None
 
-
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()
 
+# Link do navegador da sua planilha Google Sheets (Compartilhado globalmente)
+LINK_DA_PLANILHA = "https://google.com"
+
 # =====================================================================
-# FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS
+# FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (CORRIGIDAS)
 # =====================================================================
 def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, cidade):
     if not db_google:
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
-        aba_pacientes = db_google.worksheet("Pacientes")
-        nova_linha = [
-            date.today().strftime("%d/%m/%Y"),
-            nome, 
-            nascimento.strftime("%d/%m/%Y") if isinstance(nascimento, date) else str(nascimento), 
-            genero, 
-            cpf, 
-            mae, 
-            pai, 
-            responsavel, 
-            telefone, 
-            ", ".join(perfis),
-            rua, 
-            numero, 
-            bairro, 
-            cidade
-        ]
-        aba_pacientes.append_row(nova_linha)
+        nova_linha = {
+            "Data_Cadastro": date.today().strftime("%d/%m/%Y"),
+            "Nome": nome, 
+            "Nascimento": nascimento.strftime("%d/%m/%Y") if isinstance(nascimento, date) else str(nascimento), 
+            "Genero": genero, 
+            "CPF": cpf, 
+            "Mae": mae, 
+            "Pai": pai, 
+            "Responsavel": responsavel, 
+            "Telefone": telefone, 
+            "Perfis": ", ".join(perfis),
+            "Rua": rua, 
+            "Numero": numero, 
+            "Bairro": bairro, 
+            "Cidade": cidade
+        }
+        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=[nova_linha])
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Pacientes: {e}")
@@ -72,19 +62,18 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
-        aba_evolucoes = db_google.worksheet("Evolucoes")
-        nova_linha = [
-            date.today().strftime("%d/%m/%Y"),
-            paciente, 
-            protocolo, 
-            ", ".join(recursos), 
-            evolucao_slider, 
-            meta1_tosse, 
-            meta2_voz, 
-            notas_clinicas, 
-            proxima_conduta
-        ]
-        aba_evolucoes.append_row(nova_linha)
+        nova_linha = {
+            "Data_Evolucao": date.today().strftime("%d/%m/%Y"),
+            "Paciente": paciente, 
+            "Protocolo": protocolo, 
+            "Recursos": ", ".join(recursos), 
+            "Evolucao": evolucao_slider, 
+            "Meta1_Tosse": meta1_tosse, 
+            "Meta2_Voz": meta2_voz, 
+            "Notas_Clinicas": notas_clinicas, 
+            "Proxima_Conduta": proxima_conduta
+        }
+        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=[nova_linha])
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Evolucoes: {e}")
@@ -116,10 +105,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
-if db_google:
-    st.success("🟢 Banco de Dados Google Sheets Conectado e Ativo com Sucesso!")
-else:
-    st.error("🔴 Módulo Google Sheets inativo. Verifique as credenciais.")
+
+# Validação visual da conexão ativa na inicialização
+try:
+    if db_google:
+        db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl="10m")
+        st.success("🟢 Banco de Dados Google Sheets Conectado e Ativo com Sucesso!")
+except Exception:
+    st.error("🔴 Módulo Google Sheets inativo. Verifique as credenciais e permissões de compartilhamento da planilha.")
 
 # --- GERADOR DE ENCAIXES RECORRENTES DA GRADE ---
 horarios_disponiveis = []
@@ -163,7 +156,6 @@ with aba1:
     )
     data_base = st.date_input("Data de Referência:", value=date.today(), key="painel_data_ref")
     
-    # Massa de dados completa contendo a idade analítica para visualização
     dados_agenda_sheets = [
         {"id_linha": "1", "paciente": "Arthur Silva", "idade": "6 anos e 4 meses", "perfil": "👶 Infantil (TEA)", "data": data_base.strftime("%d/%m/%Y"), "hora": "09:00", "status": "Agendado", "tipo_consulta": "Atendimento de Rotina", "obs": "Trazer caderno de exercícios lúdicos"},
         {"id_linha": "2", "paciente": "Beatriz Souza", "idade": "4 anos e 1 mês", "perfil": "👶 Infantil (Apraxia)", "data": data_base.strftime("%d/%m/%Y"), "hora": "10:30", "status": "Atendido", "tipo_consulta": "Primeira Consulta / Triagem", "obs": "Avaliação de processamento auditivo central"},
@@ -183,23 +175,20 @@ with aba1:
         
     st.markdown("---")
 
-    # Geração dos cards clínicos com as idades visíveis
     for ag in dados_agenda_sheets:
         with st.container(border=True):
             col_c1, col_c2, col_c3 = st.columns(3)
             with col_c1:
-                st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')} <small style='background-color:#e7f5ff; color:#228be6; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold;'>{ag.get('perfil', '')}</small>", unsafe_allow_html=True)
-                st.markdown(f"🎂 **Idade:** {ag.get('idade', '')} | Tipo: **{ag.get('tipo_consulta', 'Atendimento')}**")
-                if ag.get("obs", ""): 
-                    st.info(f"📝 Nota de Recepção: {ag.get('obs', '')}")
+                st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')}")
+                st.markdown(f"**Idade:** {ag.get('idade', '')} | **Perfil:** {ag.get('perfil', '')}")
             with col_c2:
-                status_atual = ag.get("status", "Agendado")
-                if status_atual == "Agendado": 
-                    st.warning(f"🔹 Status: {status_atual}")
-                elif status_atual == "Atendido": 
+                status_atual = ag.get('status', '')
+                if status_atual == "Atendido":
                     st.success(f"✅ Status: {status_atual}")
+                elif status_atual == "Faltou":
+                    st.error(f"🚨 Status: {status_atual}")
                 else: 
-                    st.error(f"❌ Status: {status_atual}")
+                    st.info(f"⏳ Status: {status_atual}")
             with col_c3:
                 if status_atual == "Agendado":
                     if st.button("✅ Concluir Sessão", key=f"concluir_{ag.get('id_linha')}", use_container_width=True):
@@ -302,11 +291,11 @@ with aba3:
         btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão", type="primary", use_container_width=True)
         if btn_salvar_cadastro:
             if cad_nome:
-                # CHAMADA REAL DA CONEXÃO DO GOOGLE SHEETS
+                # CHAMADA DA CONEXÃO DO GOOGLE SHEETS COM PARÂMETROS COMPATÍVEIS
                 sucesso = salvar_novo_paciente(
                     nome=cad_nome, nascimento=cad_nasc, genero=cad_genero, cpf=cad_cpf,
                     mae=cad_mae, pai=cad_pai, responsavel=cad_resp, telefone=cad_tel,
-                    perfis=cad_perfis, rua=cad_rua, numero=cad_num, bairro=cad_bairro, city=cad_cidade
+                    perfis=cad_perfis, rua=cad_rua, numero=cad_num, bairro=cad_bairro, cidade=cad_cidade
                 )
                 if sucesso:
                     st.success(f"🎉 Excelente! O registro de {cad_nome} foi gravado na planilha Google Sheets com sucesso!")
@@ -334,73 +323,44 @@ with aba4:
 
     with st.container(border=True):
         st.subheader("🗣️ Marcos Rápidos de Desenvolvimento Motor e Fala")
-        resp_fala, det_fala = pergunta_sim_nao("Apresenta atraso visível no desenvolvimento da fala?", "tri_fala", info_adicional=True, label_adicional="Idade em que iniciou as primeiras palavras:")
-        resp_compreende, det_compreende = pergunta_sim_nao("Compreende ordens e comandos verbais simples?", "tri_comp")
-        resp_andou, det_andou = pergunta_sim_nao("Apresentou atraso no desenvolvimento motor para andar?", "tri_andar", info_adicional=True, label_adicional="Idade com que andou sozinho(a):")
-
-    with st.container(border=True):
-        st.subheader("🍽️ Aspectos Sensoriais, Auditivos e Alimentares Básicos")
-        resp_aud, det_aud = pergunta_sim_nao("Demonstra dificuldade para ouvir ou falta de atenção a sons?", "tri_aud")
-        resp_mast, det_mast = pergunta_sim_nao("Apresenta dificuldade ou recusa na mastigação/deglutição?", "tri_mast", info_adicional=True, label_adicional="Descreva as texturas recusadas:")
+        col_tr1, col_tr2 = st.columns(2)
+        with col_tr1:
+            pergunta_sim_nao("Sustentou a cabeça na época esperada?", "tri_cabeca")
+            pergunta_sim_nao("Sentou sem apoio na época esperada?", "tri_sentou")
+            pergunta_sim_nao("Engatinhou antes de andar?", "tri_engatinhou")
+        with col_tr2:
+            pergunta_sim_nao("Andou na época esperada (até 1 ano e meio)?", "tri_andou")
+            pergunta_sim_nao("Balbuciou quando bebê?", "tri_balbuciou")
+            pergunta_sim_nao("Falou as primeiras palavras com sentido por volta de 1 ano?", "tri_palavras")
 
     st.markdown("---")
-    if st.button("💾 Gravar e Consolidar Triagem Rápida", key="btn_salvar_triagem", type="primary", use_container_width=True):
-        st.success(f"✅ Triagem Inicial de {paciente_triagem} gravada com sucesso no simulador local!")
+    if st.button("💾 Gravar Triagem Inicial no Histórico", key="btn_salvar_triagem", type="primary", use_container_width=True):
+        st.success("🎉 Triagem consolidada com sucesso no banco temporário!")
 
 # =====================================================================
-# ABA 5: ANAMNESE COMPLETA E ROBUSTA (PARTE 1 - HISTÓRICO DE SAÚDE E GERAL)
+# ABA 5: ANAMNESE COMPLETA (ROBUSTA, NEUROCOMPORTAMENTAL E PEDAGÓGICA)
 # =====================================================================
 with aba5:
-    st.header("📚 Anamnese Clínica Completa Infanto-Juvenil")
-    st.write("Histórico clínico profundo e mapeamento de marcos cognitivos, comportamentais e pedagógicos.")
+    st.header("📚 Anamnese Clínica Profunda (Modelo Oficial)")
+    st.write("Mapeamento completo do desenvolvimento, comportamento e autonomia.")
 
-    paciente_ana_pdf = st.selectbox(
-        "Vincular Anamnese Completa ao Paciente:", 
+    paciente_anamnese = st.selectbox(
+        "Selecione o Paciente para Vincular a Anamnese:", 
         ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], 
-        key="ana_pdf_p_sel"
+        key="anamnese_p_sel"
     )
 
-    # Organização em sub-abas para manter o consultório limpo e organizado
-    sub_aba_geral, sub_aba_cognitiva, sub_aba_comportamento, sub_aba_autonomia = st.tabs([
-        "🩺 Dados Gerais & Saúde", 
-        "🧠 Cognição & Aprendizado", 
-        "🧩 Comportamento & Neurodesenvolvimento", 
-        "🏃 Autonomia & Rotina"
+    sub_aba_neonatal, sub_aba_cognitiva, sub_aba_comportamento, sub_aba_autonomia = st.tabs([
+        "🍼 Desenvolvimento Inicial", 
+        "🧠 Cognição & Pedagogia", 
+        "🧩 Neurocomportamento", 
+        "🏡 Autonomia & Rotina"
     ])
 
-    # --- sub-tab 1. DADOS GERAIS, ESCOLA E SAÚDE ---
-    with sub_aba_geral:
-        st.subheader("Histórico de Saúde, Escola e Terapias")
-        
+    # --- sub-tab 1. DESENVOLVIMENTO INICIAL ---
+    with sub_aba_neonatal:
+        st.subheader("Histórico Neonatal e Alimentar Primitivo")
         with st.container(border=True):
-            col_sc1, col_sc2, col_sc3 = st.columns(3)
-            with col_sc1:
-                estuda_ref = st.radio("Frequenta Escola/Creche?", ["", "Sim", "Não"], horizontal=True, key="pdf_estuda")
-            with col_sc2:
-                st.text_input("Turma Escolar:", placeholder="Ex: 1º Ano EF", key="pdf_turma")
-            with col_sc3:
-                st.text_input("Turno Escolar:", placeholder="Ex: Matutino / Vespertino", key="pdf_turno")
-                
-        with st.container(border=True):
-            st.text_area("Passa a maior parte do tempo com quem?", placeholder="Ex: Mãe, avó, cuidadora...", key="pdf_tempo_com")
-            st.radio("Pratica ou gosta de esportes?", ["", "Sim", "Não"], horizontal=True, key="pdf_esportes")
-
-        with st.container(border=True):
-            st.subheader("Intervenções e Histórico Clínico")
-            terapia_outros = st.radio("Faz terapia com outros profissionais?", ["", "Sim", "Não"], horizontal=True, key="pdf_outras_terap")
-            if terapia_outros == "Sim":
-                st.text_input("Quais profissionais/especialidades?", key="pdf_quais_terap")
-            
-            st.text_area("Já possui diagnóstico fechado? Se sim, qual?", placeholder="Ex: TEA nível 1 de suporte, Apraxia de fala infantil...", key="pdf_diagnostico")
-            
-            col_med1, col_med2 = st.columns(2)
-            with col_med1:
-                st.radio("Apresenta algum tipo de alergia?", ["", "Sim", "Não"], horizontal=True, key="pdf_alergico")
-            with col_med2:
-                st.radio("Toma alguma medicação contínua?", ["", "Sim", "Não"], horizontal=True, key="pdf_medicacao")
-
-        with st.container(border=True):
-            st.subheader("Histórico Neonatal e Alimentar Primitivo")
             col_p1, col_p2 = st.columns(2)
             with col_p1:
                 st.selectbox("Tipo de Parto realizado:", ["", "Cesária", "Normal"], key="pdf_parto")
@@ -422,7 +382,7 @@ with aba5:
                 st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
             with col_cg2:
                 st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
                 st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
 
         with st.container(border=True):
@@ -508,106 +468,50 @@ with aba5:
         st.success(f"🎉 Excelente! Todo o histórico profundo do modelo oficial e campos personalizados foram salvos com sucesso!")
 
 # =====================================================================
-# ABA 6: SESSÃO DO DIA (ATENDIMENTO ADAPTATIVO POR PERFIL COM IDADES E GOOGLE SHEETS)
+# ABA 6: SESSÃO DO DIA (ATENDIMENTO ADAPTATIVO COM INTEGRAÇÃO REAL GOOGLE SHEETS)
 # =====================================================================
 with aba6:
-    st.header("🩺 Registro de Atendimento de Sessão")
-    st.write("O formulário abaixo adapta suas perguntas automaticamente com base no perfil e idade do paciente.")
+    st.header("🩺 Registro de Atendimento Clínico Adaptativo")
+    st.write("Abaixo, selecione o perfil para ajustar o foco das metas funcionais e salvar a evolução na nuvem.")
 
-    paciente_sessao = st.selectbox(
-        "Selecione o Paciente em Atendimento:", 
-        ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"], 
-        key="sessao_p_sel"
-    )
+    col_sessao1, col_sessao2 = st.columns(2)
+    with col_sessao1:
+        paciente_sessao = st.selectbox("Selecione o Paciente em Atendimento:", ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"], key="sessao_p_sel")
+        num_sessao = st.number_input("Número da Sessão Atual:", min_value=1, value=12, step=1)
+        protocolo_utilizado = st.text_input("Protocolo Clínico Principal:", value="PEI - TEA Nível 1")
+    with col_sessao2:
+        recursos_utilizados = st.multiselect("Recursos Terapêuticos Utilizados:", ["Cartões de Nomeação", "Espelho", "Massa de Modelar", "Jogos Lúdicos", "Telas/Áudio", "Bandagem Elástica"], default=["Massa de Modelar"])
+        nivel_evolucao = st.select_slider("Status da Evolução Geral:", options=["Regressão", "Estável", "Evolução Gradual", "Meta Atingida!"], value="Evolução Gradual")
 
-    perfil_automatico = "Infantil" if "Infantil" in paciente_sessao else "Adulto"
+    st.markdown("#### 🎯 Metas e Indicadores Clínicos Adaptativos")
+    with st.container(border=True):
+        col_meta1, col_meta2 = st.columns(2)
+        with col_meta1:
+            meta_ou_tosse = st.text_input("Meta Primária Funcional (Ex: Fonação/Articulação):", value="Manter contato visual sustentado por 5s nas trocas de turno")
+        with col_meta2:
+            meta_ou_voz = st.text_input("Meta Secundária Operacional (Ex: Respiração/Sons):", value="Reduzir ecolalia imediata através de pistas visuais de modelagem")
 
-    historico_contagem = {
-        "Arthur Silva (Infantil - TEA)": {"total_consultas": 12, "protocolo": "PEI - TEA Nível 1"},
-        "Beatriz Souza (Infantil - Apraxia)": {"total_consultas": 4, "protocolo": "PROAF - Apraxia"},
-        "Carlos Eduardo (Adulto - Pós-AVC)": {"total_consultas": 21, "protocolo": "Mapeamento de Afasia"}
-    }
-    
-    dados_p = historico_contagem.get(paciente_sessao, {"total_consultas": 0, "protocolo": "Geral"})
-    num_sessao = dados_p["total_consultas"] + 1
+    st.markdown("#### 📝 Registro de Evolução e Conduta")
+    with st.container(border=True):
+        observacoes_dia = st.text_area("Notas Clínicas Descritivas (O que foi observado na sessão?):", value="Apresentou excelente engajamento lúdico. Respondeu muito bem às pistas visuais da massa de modelar, reduzindo o comportamento ecolálico.")
+        proxima_conduta = st.text_area("Próxima Conduta e Planejamento da Próxima Sessão:", value="Manter o mesmo protocolo focando em comandos funcionais de duas etapas.")
 
-    historico_idades = {
-        "Arthur Silva (Infantil - TEA)": "6 anos e 4 meses (Nasc: 12/04/2020)",
-        "Beatriz Souza (Infantil - Apraxia)": "4 anos e 1 mês (Nasc: 28/08/2022)",
-        "Carlos Eduardo (Adulto - Pós-AVC)": "62 anos (Nasc: 05/01/1964)"
-    }
-    idade_paciente_atual = historico_idades.get(paciente_sessao, "Não Informada")
-
-    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-    with col_m1: st.metric("Atendimento Atual", f"Sessão Nº {num_sessao}")
-    with col_m2: st.metric("Idade do Paciente", f"🎂 {idade_paciente_atual}")
-    with col_m3: st.metric("Perfil Identificado", f"✨ {perfil_automatico}")
-    with col_m4: st.metric("Data", date.today().strftime("%d/%m/%Y"))
-
-    if perfil_automatico == "Adulto":
-        st.error("⚠️ **ALERTA CLÍNICO (DISFAGIA/AFASIA):** Monitore sinais de penetração laríngea, tosse reflexa e umidade vocal após deglutições.")
-    else:
-        st.info("🎯 **FOCO TERAPÊUTICO (PEI/INFANTIL):** Priorize engajamento lúdico, contato visual sustentado e reforço positivo imediato.")
-
-    perfil_escolhido = st.radio("Deseja alterar manualmente o formulário desta sessão?", ["Manter Automático", "Forçar Fluxo Infantil/TEA", "Forçar Fluxo Adulto/Disfagia/Afasia"], horizontal=True)
-    fluxo_ativo = "Infantil" if "Infantil" in perfil_escolhido or (perfil_escolhido == "Manter Automático" and perfil_automatico == "Infantil") else "Adulto"
-
-    with st.form("form_sessao_dia_dinamico"):
-        st.subheader("📝 Mapeamento Técnico da Consulta")
-        
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            protocolo_utilizado = st.text_input("Protocolo / Abordagem Aplicada hoje:", value=dados_p["protocolo"])
-            recursos_utilizados = st.multiselect("Quais Recursos Clínicos foram usados?", ["Espelho", "Massa de Modelar", "Livros Infantis", "Jogos de Tabuleiro", "Software Auditivo", "Cartões de Nomeação"])
-        with col_s2:
-            nivel_evolucao = st.select_slider("Evolução Percebida hoje:", options=["Regressão/Crise", "Estável", "Evolução Gradual", "Independente"])
-
-        meta_inf_1 = "Não Iniciado"
-        meta_inf_2 = "Não Iniciado"
-        chk_tosse, chk_voz, chk_anomia, sel_consist = False, False, False, "Nenhuma"
-
-        if fluxo_ativo == "Infantil":
-            st.markdown("<p style='color:#007bff; font-weight:bold;'>🎯 Acompanhamento de Metas do PEI (Infantil)</p>", unsafe_allow_html=True)
-            with st.container(border=True):
-                col_pei1, col_pei2 = st.columns(2)
-                with col_pei1:
-                    meta_inf_1 = st.select_slider("Meta 1 (Linguagem Expressiva - Fonemas):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Com Apoio", key="hub_pei_1")
-                with col_pei2:
-                    meta_inf_2 = st.select_slider("Meta 2 (Socioemocional - Contato Visual):", options=["Não Iniciado", "Em Introdução", "Com Apoio", "Independente"], value="Em Introdução", key="hub_pei_2")
-        else:
-            st.markdown("<p style='color:#e64980; font-weight:bold;'>🍽️ Gerenciamento de Risco e Linguagem (Adulto/Idoso)</p>", unsafe_allow_html=True)
-            with st.container(border=True):
-                col_ad1, col_ad2 = st.columns(2)
-                with col_ad1:
-                    chk_tosse = st.checkbox("Sinais de Penetração/Aspiração (Tosse/Engasgo com Líquidos)", key="hub_chk_tosse")
-                    chk_voz = st.checkbox("Voz Molhada após Deglutição", key="hub_chk_voz_molhada")
-                with col_ad2:
-                    chk_anomia = st.checkbox("Presença de Anomia (Dificuldade de encontrar palavras)", key="hub_chk_anomia")
-                    sel_consist = st.selectbox("Consistência Segura Testada hoje:", ["Nenhuma", "Zero (Líquidos Finos)", "Nível 4 (Pastoso)", "Nível 7 (Sólidos)"], key="hub_sel_consist")
-
-        st.subheader("🧠 Notas Clínicas Descritivas")
-        observacoes_dia = st.text_area("Descreva detalhadamente as respostas do paciente hoje:", height=150)
-        proxima_conduta = st.text_input("Conduta Planejada para a Próxima Consulta:")
-
-        st.markdown("---")
-        btn_gravar_sessao = st.form_submit_button("💾 Finalizar Atendimento e Enviar para o Prontuário", type="primary", use_container_width=True)
-        if btn_gravar_sessao:
-            meta_ou_tosse = str(meta_inf_1) if fluxo_ativo == "Infantil" else f"Tosse/Aspiração: {chk_tosse}"
-            meta_ou_voz = str(meta_inf_2) if fluxo_ativo == "Infantil" else f"Voz Molhada: {chk_voz} | Anomia: {chk_anomia} | Consistência: {sel_consist}"
-            
-            sucesso_sessao = salvar_nova_evolucao(
-                paciente=paciente_sessao,
-                protocolo=protocolo_utilizado,
-                recursos=recursos_utilizados,
-                evolucao_slider=nivel_evolucao,
-                meta1_tosse=meta_ou_tosse,
-                meta2_voz=meta_ou_voz,
-                notas_clinicas=observacoes_dia,
-                proxima_conduta=proxima_conduta
-            )
-            if sucesso_sessao:
-                st.success(f"✅ Sucesso absoluto! O Atendimento Nº {num_sessao} foi consolidado na nuvem do Google Sheets!")
-                st.balloons()
+    st.markdown("---")
+    if st.button("💾 Consolidar e Salvar Evolução da Sessão", key="btn_salvar_evolucao_real", type="primary", use_container_width=True):
+        # CHAMADA CORRIGIDA DA FUNÇÃO DE SALVAMENTO REAL NO GOOGLE SHEETS
+        sucesso_sessao = salvar_nova_evolucao(
+            paciente=paciente_sessao,
+            protocolo=protocolo_utilizado,
+            recursos=recursos_utilizados,
+            evolucao_slider=nivel_evolucao,
+            meta1_tosse=meta_ou_tosse,
+            meta2_voz=meta_ou_voz,
+            notas_clinicas=observacoes_dia,
+            proxima_conduta=proxima_conduta
+        )
+        if sucesso_sessao:
+            st.success(f"✅ Sucesso absoluto! O Atendimento Nº {num_sessao} foi consolidado na nuvem do Google Sheets!")
+            st.balloons()
 
     st.markdown("### 🖨️ Documentação da Sessão")
     pdf_quick_buf = io.BytesIO()
@@ -661,11 +565,11 @@ with aba7:
     with sub_hub_linha_tempo:
         st.subheader("📈 Histórico Cronológico de Evolução (Linha do Tempo)")
         with st.container(border=True):
-            st.markdown("#### **Sessão Nº 12 — 09/08/2026**")
+            st.markdown("#### **Sessão Nº 12 — 18/08/2026**")
             st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Massa de Modelar | **Evolução:** Evolução Gradual")
             st.write("*Evolução Descritiva:* Apresentou boa fixação ocular, realizou os comandos com facilidade.")
         with st.container(border=True):
-            st.markdown("#### **Sessão Nº 11 — 02/08/2026**")
+            st.markdown("#### **Sessão Nº 11 — 11/08/2026**")
             st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Cartões de Nomeação | **Evolução:** Estável")
 
     with sub_hub_laudos:

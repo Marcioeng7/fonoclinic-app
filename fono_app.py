@@ -1,7 +1,9 @@
 import streamlit as st
 from datetime import date, datetime, timedelta
 import io
-import json  # Certifique-se de que esta linha está no topo absoluto do arquivo!
+import json
+import pandas as pd
+from streamlit_gsheets import GSheetsConnection
 
 # CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
@@ -9,12 +11,10 @@ st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide"
 # =====================================================================
 # MOTOR DE CONEXÃO PREMIUM VIA DRIVER OFICIAL STREAMLIT (CORRIGIDO)
 # =====================================================================
-from streamlit_gsheets import GSheetsConnection
-
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        # Inicializa a conexão oficial do Streamlit
+        # Inicializa a conexão oficial do Streamlit com o Google Sheets
         conn = st.connection("gsheets", type=GSheetsConnection)
         return conn
     except Exception as e:
@@ -25,7 +25,7 @@ def conectar_google_sheets():
 db_google = conectar_google_sheets()
 
 # Link do navegador da sua planilha Google Sheets (Compartilhado globalmente)
-LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?gid=681146102#gid=681146102"
+LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?gid=0#gid=0"
 
 # =====================================================================
 # FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (CORRIGIDAS)
@@ -35,6 +35,11 @@ def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, t
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
+        # Puxa os dados que já existem na planilha para um DataFrame do Pandas
+        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl=0)
+        df_atual = pd.DataFrame(dados_existentes)
+        
+        # Cria a nova linha mapeando as colunas exatas da planilha
         nova_linha = {
             "Data_Cadastro": date.today().strftime("%d/%m/%Y"),
             "Nome": nome, 
@@ -45,13 +50,17 @@ def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, t
             "Pai": pai, 
             "Responsavel": responsavel, 
             "Telefone": telefone, 
-            "Perfis": ", ".join(perfis),
+            "Perfis": ", ".join(perfis) if isinstance(perfis, list) else str(perfis),
             "Rua": rua, 
             "Numero": numero, 
             "Bairro": bairro, 
             "Cidade": cidade
         }
-        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=[nova_linha])
+        
+        # Concatena a nova linha ao banco existente e atualiza a aba
+        df_novo = pd.DataFrame([nova_linha])
+        df_final = pd.concat([df_atual, df_novo], ignore_index=True)
+        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=df_final)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Pacientes: {e}")
@@ -62,20 +71,27 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
+        # Puxa as evoluções clínicas existentes
+        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", ttl=0)
+        df_atual = pd.DataFrame(dados_existentes)
+        
+        # Estrutura os novos dados de evolução conforme a ordem das colunas
         nova_linha = {
             "Data_Sessao": date.today().strftime("%d/%m/%Y"),
             "Paciente": paciente, 
             "Protocolo": protocolo, 
-            "Recursos": ", ".join(recursos), 
+            "Recursos": ", ".join(recursos) if isinstance(recursos, list) else str(recursos), 
             "Evolucao_Slider": evolucao_slider, 
             "Meta1_ou_Tosse": meta1_tosse, 
             "Meta2_ou_Voz": meta2_voz, 
             "Notas_Clinicas": notas_clinicas, 
             "Proxima_Conduta": proxima_conduta
         }
-
-    
-        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=[nova_linha])
+        
+        # Concatena a nova evolução e atualiza a planilha
+        df_novo = pd.DataFrame([nova_linha])
+        df_final = pd.concat([df_atual, df_novo], ignore_index=True)
+        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=df_final)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Evolucoes: {e}")
@@ -184,22 +200,10 @@ with aba1:
                 st.markdown(f"### ⏰ **{ag.get('hora', '')}** — {ag.get('paciente', '')}")
                 st.markdown(f"**Idade:** {ag.get('idade', '')} | **Perfil:** {ag.get('perfil', '')}")
             with col_c2:
-                status_atual = ag.get('status', '')
-                if status_atual == "Atendido":
-                    st.success(f"✅ Status: {status_atual}")
-                elif status_atual == "Faltou":
-                    st.error(f"🚨 Status: {status_atual}")
-                else: 
-                    st.info(f"⏳ Status: {status_atual}")
+                st.markdown(f"**Modalidade:** {ag.get('tipo_consulta', '')}")
+                st.markdown(f"**Observações:** {ag.get('obs', '')}")
             with col_c3:
-                if status_atual == "Agendado":
-                    if st.button("✅ Concluir Sessão", key=f"concluir_{ag.get('id_linha')}", use_container_width=True):
-                        st.success("Simulação: Atendimento gravado!")
-                    if st.button("🚨 Registrar Falta", key=f"falta_{ag.get('id_linha')}", use_container_width=True):
-                        st.error("Simulação: Falta computada!")
-                else:
-                    if st.button("🗑️ Liberar Grade", key=f"excluir_{ag.get('id_linha')}", use_container_width=True):
-                        st.info("Simulação: Horário disponibilizado.")
+                st.markdown(f"**Status Atual:** `{ag.get('status', '')}`")
 
 # =====================================================================
 # ABA 2: CONFIGURAÇÃO E MARCAÇÃO DE NOVOS HORÁRIOS
@@ -261,7 +265,7 @@ with aba3:
             st.caption("Selecione as categorias para ativar os protocolos automáticos no prontuário:")
             cad_perfis = st.multiselect(
                 "Categorias Diagnósticas / Clínicas:",
-                ["👶 Infantil", "🧓 Adulto/Idoso", "🧩 TEA (Autismo)", "🗣️ Apraxia de Fala", "🍽️ Disfagia (Deglutição)", "🧠 Afasia/Cognição", "🎙️ Voz/Motricidade Orofacial"],
+                ["👶 Infantil", "🧓 Adulto/Idoso", "🧩 TEA (Autismo)", "🗣️ Apraxia de Fala", "🍽️ Disfagia (Deglutição)", "🧠 Afasia/Cognição", "🧠 Voz/Motricidade Orofacial"],
                 default=["👶 Infantil", "🧩 TEA (Autismo)"],
                 key="cad_perfis_tags"
             )
@@ -336,15 +340,15 @@ with aba4:
             pergunta_sim_nao("Falou as primeiras palavras com sentido por volta de 1 ano?", "tri_palavras")
 
     st.markdown("---")
-    if st.button("💾 Gravar Triagem Inicial no Histórico", key="btn_salvar_triagem", type="primary", use_container_width=True):
-        st.success("🎉 Triagem consolidada com sucesso no banco temporário!")
+    if st.button("💾 Gravar Triagem Inicial no Histórico", key="btn_salvar_triagem", use_container_width=True):
+        st.success("✅ Triagem inicial processada e salva no simulador do prontuário com sucesso!")
 
 # =====================================================================
-# ABA 5: ANAMNESE COMPLETA (ROBUSTA, NEUROCOMPORTAMENTAL E PEDAGÓGICA)
+# ABA 5: ANAMNESE COMPLETA (ROBUSTA)
 # =====================================================================
 with aba5:
-    st.header("📚 Anamnese Clínica Profunda (Modelo Oficial)")
-    st.write("Mapeamento completo do desenvolvimento, comportamento e autonomia.")
+    st.header("📚 Anamnese Clínica Profunda")
+    st.write("Histórico clínico detalhado focado em neurodesenvolvimento, comportamento e rotina familiar.")
 
     paciente_anamnese = st.selectbox(
         "Selecione o Paciente para Vincular a Anamnese:", 
@@ -352,53 +356,10 @@ with aba5:
         key="anamnese_p_sel"
     )
 
-    sub_aba_neonatal, sub_aba_cognitiva, sub_aba_comportamento, sub_aba_autonomia = st.tabs([
-        "🍼 Desenvolvimento Inicial", 
-        "🧠 Cognição & Pedagogia", 
-        "🧩 Neurocomportamento", 
-        "🏡 Autonomia & Rotina"
+    sub_aba_comportamento, sub_aba_autonomia = st.tabs([
+        "🧠 Comportamento & Neurodesenvolvimento", 
+        "🏠 Autonomia & Rotina Diária"
     ])
-
-    # --- sub-tab 1. DESENVOLVIMENTO INICIAL ---
-    with sub_aba_neonatal:
-        st.subheader("Histórico Neonatal e Alimentar Primitivo")
-        with st.container(border=True):
-            col_p1, col_p2 = st.columns(2)
-            with col_p1:
-                st.selectbox("Tipo de Parto realizado:", ["", "Cesária", "Normal"], key="pdf_parto")
-                st.text_input("Houve alguma intercorrência no parto/gestação?", key="pdf_intercorrencia")
-            with col_p2:
-                st.radio("Como foi a alimentação inicial?", ["", "Mamou no peito", "Fórmula", "Ambos"], key="pdf_amamentacao")
-                st.radio("Usa ou já usou bicos artificiais (chupeta, mamadeira)?", ["", "Sim", "Não"], horizontal=True, key="pdf_bicos")
-
-    # --- sub-tab 2. COGNIÇÃO E MARCOS PEDAGÓGICOS ---
-    with sub_aba_cognitiva:
-        st.subheader("Mapeamento Pedagógico e Habilidades Cognitivas Básicas")
-        st.write("Marque o desempenho cognitivo observado ou relatado pela família:")
-
-        with st.container(border=True):
-            col_cg1, col_cg2 = st.columns(2)
-            with col_cg1:
-                st.radio("Sabe e responde o próprio nome?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_nome")
-                st.radio("Sabe o nome dos pais/responsáveis?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_resp")
-                st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
-            with col_cg2:
-                st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
-                st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
-
-        with st.container(border=True):
-            st.subheader("Linguagem e Expressividade")
-            st.radio("O paciente é verbal?", ["", "Sim", "Não"], horizontal=True, key="pdf_verbal")
-            st.radio("Fala ou compreende o idioma inglês? (Telas)", ["", "Sim", "Não"], horizontal=True, key="pdf_ingles")
-            
-            col_nom1, col_nom2, col_nom3 = st.columns(3)
-            with col_nom1: st.radio("Nomeia as cores?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_cores")
-            with col_nom2: st.radio("Nomeia objetos comuns?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_objetos")
-            with col_nom3: st.radio("Nomeia animais?", ["", "Sim", "Não"], horizontal=True, key="pdf_nomeia_animais")
-                
-            st.radio("Identifica e reconhece figuras/ilustrações?", ["", "Sim", "Não"], horizontal=True, key="pdf_identifica_figuras")
-            st.radio("Demonstra habilidade para se expressar?", ["", "Sim", "Não"], horizontal=True, key="pdf_expressar")
 
     # --- sub-tab 3. COMPORTAMENTO E NEURODESENVOLVIMENTO ---
     with sub_aba_comportamento:
@@ -515,84 +476,69 @@ with aba6:
             st.success(f"✅ Sucesso absoluto! O Atendimento Nº {num_sessao} foi consolidado na nuvem do Google Sheets!")
             st.balloons()
 
-    st.markdown("### 🖨️ Documentação da Sessão")
-    pdf_quick_buf = io.BytesIO()
-    pdf_quick_buf.write(b"Comprovante de Evolucao de Sessao Avulsa")
-    st.download_button(
-        "🖨️ Exportar e Imprimir Relatório Desta Sessão", 
-        data=pdf_quick_buf.getvalue(), 
-        file_name=f"Evolucao_Sessao_{num_sessao}.pdf", 
-        mime="application/pdf", 
-        use_container_width=True
-    )
-
 # =====================================================================
-# ABA 7: CENTRAL DO PACIENTE (PRONTUÁRIO HUB UNIFICADO PREMIUM)
+# ABA 7: CENTRAL DO PACIENTE (PRONTUÁRIO INTEGRADO REAL COM BUSCA)
 # =====================================================================
 with aba7:
-    st.header("🗂️ Central Unificada do Paciente & Prontuário Clínico")
-    st.write("Hub gerencial completo. Selecione o prontuário para visualizar históricos acumulados.")
+    st.header("🗂️ Central do Paciente & Prontuário Histórico")
+    st.write("Consulte informações demográficas e o histórico completo de evoluções diretamente da planilha.")
 
-    lista_central_pacientes = ["Arthur Silva (Infantil - TEA)", "Beatriz Souza (Infantil - Apraxia)", "Carlos Eduardo (Adulto - Pós-AVC)"]
-    paciente_hub_ativo = st.selectbox("Selecione o Prontuário Ativo para Consulta:", lista_central_pacientes, key="hub_p_ativo")
-    
-    sub_hub_ficha, sub_hub_linha_tempo, sub_hub_laudos = st.tabs([
-        "👤 Ficha Médica & Cadastro", 
-        "📈 Linha do Tempo & Histórico Acumulado", 
-        "🖨️ Gerador de Relatórios & Impressão"
-    ])
-
-    with sub_hub_ficha:
-        st.subheader("📋 Informações Consolidadas do Paciente")
-        idade_hub = "6 anos e 4 meses" if "Arthur" in paciente_hub_ativo else ("4 anos e 1 mês" if "Beatriz" in paciente_hub_ativo else "62 anos")
-        nasc_hub = "12/04/2020" if "Arthur" in paciente_hub_ativo else ("28/08/2022" if "Beatriz" in paciente_hub_ativo else "05/01/1964")
-
-        with st.container(border=True):
-            st.markdown(f"### **Paciente:** {paciente_hub_ativo}")
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                st.markdown(f"🎂 **Idade Cronológica:** {idade_hub} *(Data de Nasc: {nasc_hub})*")
-                st.markdown("**Filiação:** Dra. Michelle Neves (Mãe) / Pedro Silva (Pai)")
-                st.markdown("**Endereço:** Rua das Orquídeas, 456, Barra da Tijuca, Rio de Janeiro/RJ")
-            with col_f2:
-                st.markdown("**Contato Principal:** (21) 99999-8888")
-                st.markdown("**Status Clínico Ativo:** Plano de Ensino Individualizado (PEI) em Andamento")
-
-        with st.container(border=True):
-            st.subheader("📚 Resumo Analítico da Anamnese e Triagem")
-            st.markdown("- **Queixa Principal:** Atraso no desenvolvimento da fala e episódios de seletividade alimentar marcante.")
-            st.markdown("- **Fatores Neurocomportamentais:** Apresenta estereotipias motoras sutis e ecolalia imediata.")
-            st.markdown("- **Autonomia Diária:** Em fase de desfralde assistido; atende a comandos funcionais simples.")
-
-    with sub_hub_linha_tempo:
-        st.subheader("📈 Histórico Cronológico de Evolução (Linha do Tempo)")
-        with st.container(border=True):
-            st.markdown("#### **Sessão Nº 12 — 18/08/2026**")
-            st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Massa de Modelar | **Evolução:** Evolução Gradual")
-            st.write("*Evolução Descritiva:* Apresentou boa fixação ocular, realizou os comandos com facilidade.")
-        with st.container(border=True):
-            st.markdown("#### **Sessão Nº 11 — 11/08/2026**")
-            st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Cartões de Nomeação | **Evolução:** Estável")
-
-    with sub_hub_laudos:
-        st.subheader("📄 Emissão de Documentos Clínicos Oficiais")
-        with st.container(border=True):
-            doc_tipo = st.selectbox("Tipo de Documento Desejado:", ["Relatório de Evolução Clínica", "Laudo de Avaliação Fonoaudiológica Completo"])
-            doc_parecer = st.text_area("Parecer Técnico Descritivo do Documento:", placeholder="Escreva a conclusão diagnóstica...")
-        
-        st.markdown("---")
-        col_pfd1, col_pfd2 = st.columns(2)
-        with col_pfd1:
-            if st.button("⚙️ Compilar e Estruturar Relatório Completo", use_container_width=True):
-                if doc_parecer: st.success("🎉 Relatório estruturado e preparado na memória local!")
-                else: st.warning("⚠️ Adicione o parecer descritivo para estruturar o relatório.")
-        with col_pfd2:
-            pdf_hub_buf = io.BytesIO()
-            pdf_hub_buf.write(b"Documento Clinico Emitido por FonoClinic Premium")
-            st.download_button(
-                "🖨️ Gerar PDF para Download", 
-                data=pdf_hub_buf.getvalue(), 
-                file_name=f"Relatorio_{paciente_hub_ativo.replace(' ', '_')}.pdf", 
-                mime="application/pdf", 
-                use_container_width=True
-            )
+    if db_google:
+        try:
+            # 1. Carrega dados de pacientes e evoluções em tempo real do Sheets
+            df_pacientes_real = pd.DataFrame(db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl=0))
+            df_evolucoes_real = pd.DataFrame(db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", ttl=0))
+            
+            # Cria a lista dinâmica de busca com base nos pacientes cadastrados no Sheets
+            if not df_pacientes_real.empty and "Nome" in df_pacientes_real.columns:
+                lista_central_pacientes = df_pacientes_real["Nome"].dropna().unique().tolist()
+            else:
+                lista_central_pacientes = ["Arthur Silva", "Beatriz Souza", "Carlos Eduardo"]
+            
+            paciente_central = st.selectbox("Selecione o Paciente para Abrir Prontuário:", lista_central_pacientes, key="central_p_sel")
+            
+            # 2. Exibição dos Dados Cadastrais
+            st.subheader("👤 Dados Cadastrais Encontrados")
+            if not df_pacientes_real.empty and "Nome" in df_pacientes_real.columns:
+                dados_p = df_pacientes_real[df_pacientes_real["Nome"] == paciente_central]
+                if not dados_p.empty:
+                    with st.container(border=True):
+                        p_info = dados_p.iloc[0].to_dict()
+                        col_p1, col_p2, col_p3 = st.columns(3)
+                        with col_p1:
+                            st.write(f"**Data de Cadastro:** {p_info.get('Data_Cadastro', 'N/A')}")
+                            st.write(f"**Nascimento:** {p_info.get('Nascimento', 'N/A')}")
+                            st.write(f"**Gênero:** {p_info.get('Genero', 'N/A')}")
+                        with col_p2:
+                            st.write(f"**Responsável:** {p_info.get('Responsavel', 'N/A')}")
+                            st.write(f"**Telefone:** {p_info.get('Telefone', 'N/A')}")
+                            st.write(f"**Perfis Ativos:** {p_info.get('Perfis', 'N/A')}")
+                        with col_p3:
+                            st.write(f"**Cidade:** {p_info.get('Cidade', 'N/A')}")
+                            st.write(f"**Bairro:** {p_info.get('Bairro', 'N/A')}")
+                else:
+                    st.info("ℹ️ Este paciente faz parte da base simulada inicial. Cadastre-o na Aba 3 para ver seus dados reais aqui.")
+            
+            # 3. Exibição do Histórico de Sessões/Evoluções
+            st.subheader("📋 Histórico de Linhas de Evolução Clínica")
+            if not df_evolucoes_real.empty and "Paciente" in df_evolucoes_real.columns:
+                evolucoes_p = df_evolucoes_real[df_evolucoes_real["Paciente"] == paciente_central]
+                
+                if not evolucoes_p.empty:
+                    for _, row in evolucoes_p.iterrows():
+                        with st.expander(f"📅 Sessão Realizada em: {row.get('Data_Sessao', 'N/A')} — Protocolo: {row.get('Protocolo', 'N/A')}"):
+                            st.write(f"**Status da Evolução:** `{row.get('Evolucao_Slider', 'N/A')}`")
+                            st.write(f"**Recursos Utilizados:** {row.get('Recursos', 'N/A')}")
+                            st.write(f"**Meta Funcional:** {row.get('Meta1_ou_Tosse', 'N/A')}")
+                            st.write(f"**Meta Operacional:** {row.get('Meta2_ou_Voz', 'N/A')}")
+                            st.markdown(f"**Notas Clínicas:**\n*{row.get('Notas_Clinicas', 'N/A')}*")
+                            st.write(f"**Conduta Sugerida:** {row.get('Proxima_Conduta', 'N/A')}")
+                else:
+                    st.info("📭 Nenhuma evolução real cadastrada no Sheets para este paciente ainda.")
+            else:
+                st.info("📭 A tabela de Evoluções está vazia na nuvem.")
+                
+        except Exception as e:
+            st.error(f"⚠️ Erro ao renderizar Prontuário Inteligente: {e}")
+    else:
+        st.warning("🔴 Banco de dados desconectado. Ative as credenciais para ver a Central do Paciente.")

@@ -25,17 +25,20 @@ def conectar_google_sheets():
 db_google = conectar_google_sheets()
 
 # Link do navegador da sua planilha Google Sheets (Compartilhado globalmente)
-LINK_DA_PLANILHA = "https://google.com"
 LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?gid=681146102#gid=681146102"
 
 # =====================================================================
 # FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (CORRIGIDAS)
 # =====================================================================
-def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, cidade):
+def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, city):
     if not db_google:
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
+        # 1. Lê os registros atuais para não apagá-los
+        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl=0)
+        
+        # 2. Estrutura a nova linha idêntica ao seu modelo original
         nova_linha = {
             "Data_Cadastro": date.today().strftime("%d/%m/%Y"),
             "Nome": nome, 
@@ -50,9 +53,14 @@ def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, t
             "Rua": rua, 
             "Numero": numero, 
             "Bairro": bairro, 
-            "Cidade": cidade
+            "Cidade": city
         }
-        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=[nova_linha])
+        
+        # 3. Une ao histórico e salva com o método .update()
+        dados_atualizados = dados_existentes.to_dict(orient="records") if hasattr(dados_existentes, "to_dict") else list(dados_existentes)
+        dados_atualizados.append(nova_linha)
+        
+        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=dados_atualizados)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Pacientes: {e}")
@@ -63,6 +71,10 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
+        # 1. Lê as evoluções atuais para manter o histórico clínico
+        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", ttl=0)
+        
+        # 2. Estrutura a nova linha idêntica ao seu modelo original
         nova_linha = {
             "Data_Evolucao": date.today().strftime("%d/%m/%Y"),
             "Paciente": paciente, 
@@ -74,7 +86,12 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
             "Notas_Clinicas": notas_clinicas, 
             "Proxima_Conduta": proxima_conduta
         }
-        db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=[nova_linha])
+        
+        # 3. Une ao histórico e salva com o método .update()
+        dados_atualizados = dados_existentes.to_dict(orient="records") if hasattr(dados_existentes, "to_dict") else list(dados_existentes)
+        dados_atualizados.append(nova_linha)
+        
+        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=dados_atualizados)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Evolucoes: {e}")
@@ -383,7 +400,7 @@ with aba5:
                 st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
             with col_cg2:
                 st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
                 st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
 
         with st.container(border=True):
@@ -494,12 +511,11 @@ with aba6:
 
     st.markdown("#### 📝 Registro de Evolução e Conduta")
     with st.container(border=True):
-        observacoes_dia = st.text_area("Notas Clínicas Descritivas (O que foi observado na sessão?):", value="Apresentou excelente engajamento lúdico. Respondeu muito bem às pistas visuais da massa de modelar, reduzindo o comportamento ecolálico.")
+        observacoes_dia = st.text_area("Notas Clínicas Descritivas (O que foi observado na sessão?):", value="Apresentou excelente engajamento lúdico. Respondeu muito bem às pistas visuais da massa de modelar, reuniões ou trocas...")
         proxima_conduta = st.text_area("Próxima Conduta e Planejamento da Próxima Sessão:", value="Manter o mesmo protocolo focando em comandos funcionais de duas etapas.")
 
     st.markdown("---")
     if st.button("💾 Consolidar e Salvar Evolução da Sessão", key="btn_salvar_evolucao_real", type="primary", use_container_width=True):
-        # CHAMADA CORRIGIDA DA FUNÇÃO DE SALVAMENTO REAL NO GOOGLE SHEETS
         sucesso_sessao = salvar_nova_evolucao(
             paciente=paciente_sessao,
             protocolo=protocolo_utilizado,
@@ -571,7 +587,7 @@ with aba7:
             st.write("*Evolução Descritiva:* Apresentou boa fixação ocular, realizou os comandos com facilidade.")
         with st.container(border=True):
             st.markdown("#### **Sessão Nº 11 — 11/08/2026**")
-            st.markdown("**Protocolo:** PEI - TEA Nível 1 | **Recursos:** Cartões de Nomeação | **Evolução:** Estável")
+            st.markdown("#### **Protocolo:** PEI - TEA Nível 1 | **Recursos:** Cartões de Nomeação | **Evolução:** Estável")
 
     with sub_hub_laudos:
         st.subheader("📄 Emissão de Documentos Clínicos Oficiais")
@@ -595,3 +611,4 @@ with aba7:
                 mime="application/pdf", 
                 use_container_width=True
             )
+

@@ -63,16 +63,18 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
         return False
     try:
         nova_linha = {
-            "Data_Evolucao": date.today().strftime("%d/%m/%Y"),
+            "Data_Sessao": date.today().strftime("%d/%m/%Y"),
             "Paciente": paciente, 
             "Protocolo": protocolo, 
             "Recursos": ", ".join(recursos), 
-            "Evolucao": evolucao_slider, 
-            "Meta1_Tosse": meta1_tosse, 
-            "Meta2_Voz": meta2_voz, 
+            "Evolucao_Slider": evolucao_slider, 
+            "Meta1_ou_Tosse": meta1_tosse, 
+            "Meta2_ou_Voz": meta2_voz, 
             "Notas_Clinicas": notas_clinicas, 
             "Proxima_Conduta": proxima_conduta
         }
+
+    
         db_google.create(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=[nova_linha])
         return True
     except Exception as e:

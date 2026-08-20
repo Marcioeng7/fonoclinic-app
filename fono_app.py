@@ -25,7 +25,7 @@ def conectar_google_sheets():
 db_google = conectar_google_sheets()
 
 # Link do navegador da sua planilha Google Sheets (Compartilhado globalmente)
-LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/edit?gid=681146102#gid=681146102"
+LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/"
 
 # =====================================================================
 # FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (CORRIGIDAS)

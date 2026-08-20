@@ -1,20 +1,20 @@
 import streamlit as st
 from datetime import date, datetime, timedelta
 import io
-import json  # Certifique-se de que esta linha está no topo absoluto do arquivo!
+import json
 
 # CONFIGURAÇÃO DE PÁGINA OBRIGATÓRIA COMO LINHA DE EXECUÇÃO INICIAL
 st.set_page_config(page_title="FonoClinic v1.7", page_icon="🩺", layout="wide")
 
 # =====================================================================
-# MOTOR DE CONEXÃO PREMIUM VIA DRIVER OFICIAL STREAMLIT (CORRIGIDO)
+# MOTOR DE CONEXÃO PREMIUM VIA DRIVER OFICIAL STREAMLIT (NATIVO E SEGURO)
 # =====================================================================
 from streamlit_gsheets import GSheetsConnection
 
 @st.cache_resource
 def conectar_google_sheets():
     try:
-        # Inicializa a conexão oficial do Streamlit
+        # Puxa as configurações diretamente dos Secrets de forma nativa e automática
         conn = st.connection("gsheets", type=GSheetsConnection)
         return conn
     except Exception as e:
@@ -24,21 +24,18 @@ def conectar_google_sheets():
 # Inicializa a conexão global do banco de dados na inicialização
 db_google = conectar_google_sheets()
 
-# Link do navegador da sua planilha Google Sheets (Compartilhado globalmente)
-LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1EkIf2XPmEArBzeY6iD3tFfAwpHJeWnqJuh84XRMP-FY/sharing"
-
 # =====================================================================
-# FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (CORRIGIDAS)
+# FUNÇÕES DE PERSISTÊNCIA REAL DE DADOS NO GOOGLE SHEETS (MÉTODO .UPDATE)
 # =====================================================================
-def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, city):
+def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, telefone, perfis, rua, numero, bairro, cidade):
     if not db_google:
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
-        # 1. Lê os registros atuais para não apagá-los
-        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl=0)
+        # Lê os registros atuais sem travar cache
+        dados_existentes = db_google.read(worksheet="Pacientes", ttl=0)
         
-        # 2. Estrutura a nova linha idêntica ao seu modelo original
+        # Constrói a nova linha respeitando o formato de dicionário original
         nova_linha = {
             "Data_Cadastro": date.today().strftime("%d/%m/%Y"),
             "Nome": nome, 
@@ -53,14 +50,14 @@ def salvar_novo_paciente(nome, nascimento, genero, cpf, mae, pai, responsavel, t
             "Rua": rua, 
             "Numero": numero, 
             "Bairro": bairro, 
-            "Cidade": city
+            "Cidade": cidade
         }
         
-        # 3. Une ao histórico e salva com o método .update()
+        # Une à lista anterior e aplica o método correto .update()
         dados_atualizados = dados_existentes.to_dict(orient="records") if hasattr(dados_existentes, "to_dict") else list(dados_existentes)
         dados_atualizados.append(nova_linha)
         
-        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", data=dados_atualizados)
+        db_google.update(worksheet="Pacientes", data=dados_atualizados)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Pacientes: {e}")
@@ -71,10 +68,10 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
         st.error("❌ Gravação abortada: Banco de dados Google Sheets não está ativo.")
         return False
     try:
-        # 1. Lê as evoluções atuais para manter o histórico clínico
-        dados_existentes = db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", ttl=0)
+        # Lê as evoluções clínicas atuais sem travar cache
+        dados_existentes = db_google.read(worksheet="Evolucoes", ttl=0)
         
-        # 2. Estrutura a nova linha idêntica ao seu modelo original
+        # Constrói a nova linha respeitando o formato original de dicionário
         nova_linha = {
             "Data_Evolucao": date.today().strftime("%d/%m/%Y"),
             "Paciente": paciente, 
@@ -87,11 +84,11 @@ def salvar_nova_evolucao(paciente, protocolo, recursos, evolucao_slider, meta1_t
             "Proxima_Conduta": proxima_conduta
         }
         
-        # 3. Une ao histórico e salva com o método .update()
+        # Une ao histórico e salva usando o método nativo .update()
         dados_atualizados = dados_existentes.to_dict(orient="records") if hasattr(dados_existentes, "to_dict") else list(dados_existentes)
         dados_atualizados.append(nova_linha)
         
-        db_google.update(spreadsheet=LINK_DA_PLANILHA, worksheet="Evolucoes", data=dados_atualizados)
+        db_google.update(worksheet="Evolucoes", data=dados_atualizados)
         return True
     except Exception as e:
         st.error(f"⚠️ Erro ao inserir dados na aba Evolucoes: {e}")
@@ -127,7 +124,7 @@ st.title("🩺 FonoClinic v1.7 — Gestão Clínica & Prontuário Inteligente")
 # Validação visual da conexão ativa na inicialização
 try:
     if db_google:
-        db_google.read(spreadsheet=LINK_DA_PLANILHA, worksheet="Pacientes", ttl="10m")
+        db_google.read(worksheet="Pacientes", ttl="10m")
         st.success("🟢 Banco de Dados Google Sheets Conectado e Ativo com Sucesso!")
 except Exception:
     st.error("🔴 Módulo Google Sheets inativo. Verifique as credenciais e permissões de compartilhamento da planilha.")
@@ -309,7 +306,6 @@ with aba3:
         btn_salvar_cadastro = st.form_submit_button("💾 Salvar Registro de Admissão", type="primary", use_container_width=True)
         if btn_salvar_cadastro:
             if cad_nome:
-                # CHAMADA DA CONEXÃO DO GOOGLE SHEETS COM PARÂMETROS COMPATÍVEIS
                 sucesso = salvar_novo_paciente(
                     nome=cad_nome, nascimento=cad_nasc, genero=cad_genero, cpf=cad_cpf,
                     mae=cad_mae, pai=cad_pai, responsavel=cad_resp, telefone=cad_tel,
@@ -400,7 +396,7 @@ with aba5:
                 st.radio("Conhece/sabe as vogais?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_vogais")
             with col_cg2:
                 st.radio("Conhece/sabe as cores básicas?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_cores")
-                st.radio("Conhece/sabe o alphabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
+                st.radio("Conhece/sabe o alfabeto?", ["", "Sim", "Não"], horizontal=True, key="pdf_sabe_alfabeto")
                 st.radio("Atende a comandos simples? (Ex: 'pega isso aqui e coloca na mesa')", ["", "Sim", "Não"], horizontal=True, key="pdf_atende_comandos")
 
         with st.container(border=True):
@@ -611,4 +607,3 @@ with aba7:
                 mime="application/pdf", 
                 use_container_width=True
             )
-
